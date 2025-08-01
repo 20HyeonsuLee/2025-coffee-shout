@@ -4,7 +4,6 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ScheduledFuture;
-import org.springframework.scheduling.TaskScheduler;
 
 class Task {
     private Long id;

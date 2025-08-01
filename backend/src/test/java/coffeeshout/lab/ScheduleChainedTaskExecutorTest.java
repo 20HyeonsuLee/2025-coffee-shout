@@ -2,7 +2,7 @@ package coffeeshout.lab;
 
 import org.junit.jupiter.api.Test;
 
-class TaskExecutorTest {
+class ScheduleChainedTaskExecutorTest {
 
     @Test
     void TaskExecutorTest() throws InterruptedException {
