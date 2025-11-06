@@ -4,22 +4,24 @@ import coffeeshout.global.exception.custom.InvalidArgumentException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.NonNull;
 
-public record JoinCode(
-        String value
-) {
+@Getter
+public final class JoinCode {
 
-    public String getValue() {
-        return value;
-    }
+    private static final String CHARSET = "ABCDFGHJKLMNPQRSTUVWXYZ346789";
+    private static final int CODE_LENGTH = 4;
 
-    private static final String CHARSET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private static final int CODE_LENGTH = 5;
+    private final String value;
+    private QrCode qrCode;
 
-    public JoinCode {
-        validateLength(value);
-        validateCharacters(value);
+    public JoinCode(String value) {
+        validate(value);
+        this.value = value;
+        this.qrCode = QrCode.pending();
     }
 
     public static JoinCode generate() {
@@ -31,10 +33,23 @@ public record JoinCode(
                 .collect(Collectors.joining()));
     }
 
+    public void assignQrCode(@NonNull QrCode qrCode) {
+        this.qrCode = qrCode;
+    }
+
+    private void validate(String value) {
+        if (value == null) {
+            throw new InvalidArgumentException(RoomErrorCode.JOIN_CODE_NULL, "참여 코드는 null일 수 없습니다.");
+        }
+
+        validateLength(value);
+        validateCharacters(value);
+    }
+
     private void validateLength(String value) {
         if (value.length() != CODE_LENGTH) {
             throw new InvalidArgumentException(RoomErrorCode.JOIN_CODE_ILLEGAL_LENGTH,
-                    "5자리 코드여야 합니다. 현재 길이: " + value.length());
+                    "4자리 코드여야 합니다. 현재 길이: " + value.length());
         }
     }
 
@@ -56,4 +71,27 @@ public record JoinCode(
     private boolean isValidCharacter(int charCode) {
         return CHARSET.indexOf(charCode) > -1;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (obj == null || obj.getClass() != this.getClass()) {
+            return false;
+        }
+        var that = (JoinCode) obj;
+        return Objects.equals(this.value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(value);
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
+
 }

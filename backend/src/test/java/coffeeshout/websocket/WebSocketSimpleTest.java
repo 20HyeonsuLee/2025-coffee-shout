@@ -2,13 +2,12 @@ package coffeeshout.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import coffeeshout.support.test.IntegrationTest;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -26,14 +25,13 @@ import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 /**
  * 간단한 웹소켓 연결 및 E2E 테스트 실제 데이터 없이도 웹소켓 연결과 메시지 전송을 테스트
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@IntegrationTest
 class WebSocketSimpleTest {
 
     @LocalServerPort
     private int port;
 
     @Test
-    @DisplayName("SockJS STOMP 엔드포인트 연결 테스트")
     void SockJS_STOMP_엔드포인트_연결_테스트() throws Exception {
         // given
         List<Transport> transports = List.of(
@@ -59,7 +57,6 @@ class WebSocketSimpleTest {
     }
 
     @Test
-    @DisplayName("방 토픽 구독 테스트")
     void 방_토픽_구독_테스트() throws Exception {
         // given
         List<Transport> transports = List.of(
@@ -88,7 +85,6 @@ class WebSocketSimpleTest {
     }
 
     @Test
-    @DisplayName("플레이어 목록 요청 메시지 전송 테스트")
     void 플레이어_목록_요청_메시지_전송_테스트() throws Exception {
         // given
         List<Transport> transports = List.of(
@@ -120,7 +116,6 @@ class WebSocketSimpleTest {
     }
 
     @Test
-    @DisplayName("여러 토픽 동시 구독 테스트")
     void 여러_토픽_동시_구독_테스트() throws Exception {
         // given
         List<Transport> transports = List.of(

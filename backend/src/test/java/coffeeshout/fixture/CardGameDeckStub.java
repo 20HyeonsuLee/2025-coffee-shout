@@ -1,16 +1,16 @@
 package coffeeshout.fixture;
 
-import coffeeshout.minigame.domain.cardgame.card.AdditionCard;
-import coffeeshout.minigame.domain.cardgame.card.Card;
-import coffeeshout.minigame.domain.cardgame.card.CardGameDeckGenerator;
-import coffeeshout.minigame.domain.cardgame.card.Deck;
-import coffeeshout.minigame.domain.cardgame.card.MultiplierCard;
+import coffeeshout.cardgame.domain.card.AdditionCard;
+import coffeeshout.cardgame.domain.card.Card;
+import coffeeshout.cardgame.domain.card.CardGameDeckGenerator;
+import coffeeshout.cardgame.domain.card.Deck;
+import coffeeshout.cardgame.domain.card.MultiplierCard;
 import java.util.List;
 
 public final class CardGameDeckStub implements CardGameDeckGenerator {
 
     @Override
-    public Deck generate(int additionCardCount, int multiplierCardCount) {
+    public Deck generate(int additionCardCount, int multiplierCardCount, long seed) {
         List<Card> additionCards = List.of(
                 new AdditionCard(40),
                 new AdditionCard(30),

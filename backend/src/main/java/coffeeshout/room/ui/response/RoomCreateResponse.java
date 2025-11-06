@@ -1,5 +1,6 @@
 package coffeeshout.room.ui.response;
 
+import coffeeshout.room.domain.JoinCode;
 import coffeeshout.room.domain.Room;
 
 public record RoomCreateResponse(
@@ -7,8 +8,9 @@ public record RoomCreateResponse(
 ) {
 
     public static RoomCreateResponse from(Room room) {
+        final JoinCode joinCode = room.getJoinCode();
         return new RoomCreateResponse(
-                room.getJoinCode().value()
+                joinCode.getValue()
         );
     }
 }

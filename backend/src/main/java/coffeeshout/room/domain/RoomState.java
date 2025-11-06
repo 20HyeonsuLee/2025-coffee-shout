@@ -4,5 +4,7 @@ public enum RoomState {
 
     READY,
     PLAYING,
+    SCORE_BOARD,
+    ROULETTE,
     DONE,
 }

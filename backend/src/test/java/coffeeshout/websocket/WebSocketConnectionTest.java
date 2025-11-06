@@ -2,32 +2,35 @@ package coffeeshout.websocket;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import coffeeshout.global.config.IntegrationTestConfig;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.messaging.simp.stomp.StompSessionHandler;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 import org.springframework.web.socket.sockjs.client.SockJsClient;
 import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+@Import({IntegrationTestConfig.class})
 class WebSocketConnectionTest {
 
     @LocalServerPort
     private int port;
 
     @Test
-    @DisplayName("순수 WebSocket STOMP 연결 테스트")
     void 순수_WebSocket_STOMP_연결_테스트() throws Exception {
         // given
         WebSocketStompClient stompClient = new WebSocketStompClient(new SockJsClient(List.of(
@@ -50,7 +53,6 @@ class WebSocketConnectionTest {
     }
 
     @Test
-    @DisplayName("토픽 구독 테스트")
     void 토픽_구독_테스트() throws Exception {
         // given
         WebSocketStompClient stompClient = new WebSocketStompClient(new SockJsClient(List.of(
@@ -76,7 +78,6 @@ class WebSocketConnectionTest {
     }
 
     @Test
-    @DisplayName("메시지 전송 테스트")
     void 메시지_전송_테스트() throws Exception {
         // given
         WebSocketStompClient stompClient = new WebSocketStompClient(new SockJsClient(List.of(
@@ -101,7 +102,7 @@ class WebSocketConnectionTest {
         assertThat(connectionLatch.await(5, TimeUnit.SECONDS)).isTrue();
         assertThat(session.isConnected()).isTrue();
 
-        Thread.sleep(1000); // 메시지 처리 대기
+        Thread.sleep(100); // 메시지 처리 대기
         session.disconnect();
     }
 
