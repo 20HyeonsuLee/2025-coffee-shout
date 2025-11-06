@@ -4,7 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-import coffeeshout.global.metric.WebSocketMetricService;
+import coffeeshout.test.metric.WebSocketMetricService;
 import coffeeshout.global.websocket.event.SessionDisconnectEventListener;
 import coffeeshout.global.websocket.infra.PlayerEventPublisher;
 import org.junit.jupiter.api.BeforeEach;

@@ -23,16 +23,13 @@ public class CardGameCommandService {
     private final RoomQueryService roomQueryService;
     private final ApplicationEventPublisher eventPublisher;
 
-    @Value("${server.port}")
-    private int serverPort;
-
     public void selectCard(JoinCode joinCode, PlayerName playerName, int cardIndex) {
         log.info("카드 선택 처리 시작: joinCode={}, playerName={}, cardIndex={}",
                 joinCode, playerName, cardIndex);
 
         final CardGame cardGame = getCardGame(joinCode);
         final Player player = cardGame.findPlayerByName(playerName);
-        cardGame.selectCard(player, cardIndex, serverPort);
+        cardGame.selectCard(player, cardIndex, 8080);
 
         eventPublisher.publishEvent(new CardSelectedEvent(joinCode, cardGame));
     }

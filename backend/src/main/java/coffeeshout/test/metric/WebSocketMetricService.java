@@ -1,4 +1,4 @@
-package coffeeshout.global.metric;
+package coffeeshout.test.metric;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -84,20 +84,6 @@ public class WebSocketMetricService {
         }
     }
 
-    public void failConnection(String sessionId, String reason) {
-        connectionSamples.remove(sessionId);
-
-        String key = "failed." + reason;
-        Counter counter = failedCounters.computeIfAbsent(
-                key, k ->
-                        Counter.builder("websocket.connections.failed")
-                                .description("웹소켓 연결 실패 건수")
-                                .tag("reason", reason)
-                                .register(meterRegistry)
-        );
-        counter.increment();
-    }
-
     public void recordDisconnection(String sessionId, String reason) {
         connectionSamples.remove(sessionId);
 
@@ -142,7 +128,6 @@ public class WebSocketMetricService {
         }
     }
 
-    // 큐 대기 시간 측정 종료
     public void stopInboundMessageTimer(String messageId) {
         Sample inboundSample = inboundMessageSamples.remove(messageId);
         if (inboundSample != null) {
@@ -150,13 +135,11 @@ public class WebSocketMetricService {
         }
     }
 
-    // 비즈니스 로직 시간 측정 시작
     public void startBusinessTimer(String messageId) {
         Sample businessSample = Timer.start(meterRegistry);
         businessLogicSamples.put(messageId, businessSample);
     }
 
-    // 비즈니스 로직 시간 측정 종료
     public void stopBusinessTimer(String messageId) {
         Sample sample = businessLogicSamples.remove(messageId);
         if (sample != null) {

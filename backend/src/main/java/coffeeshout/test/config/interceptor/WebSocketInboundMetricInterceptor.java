@@ -1,6 +1,6 @@
-package coffeeshout.global.websocket.interceptor;
+package coffeeshout.test.config.interceptor;
 
-import coffeeshout.global.metric.WebSocketMetricService;
+import coffeeshout.test.metric.WebSocketMetricService;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,30 +24,15 @@ public class WebSocketInboundMetricInterceptor implements ExecutorChannelInterce
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         final StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null) {
+        if (!isMetricsCollectible(accessor)) {
             return message;
         }
 
-        final Object commandObj = accessor.getCommand();
+        final String messageId = UUID.randomUUID().toString();
+        accessor.setHeader("messageId", messageId);
 
-        // STOMP 명령이 아닌 내부 메시지는 무시
-        if (!(commandObj instanceof StompCommand)) {
-            return message;
-        }
-
-        final StompCommand command = (StompCommand) commandObj;
-
-        if (command == StompCommand.SEND || command == StompCommand.SUBSCRIBE) {
-            String messageId = UUID.randomUUID().toString();
-            accessor.setHeader("messageId", messageId);
-
-            try {
-                webSocketMetricService.startInboundMessageTimer(messageId);
-                webSocketMetricService.incrementInboundMessage();
-            } catch (Exception e) {
-                log.warn("WebSocket 인바운드 메트릭 수집 중 에러", e);
-            }
-        }
+        webSocketMetricService.startInboundMessageTimer(messageId);
+        webSocketMetricService.incrementInboundMessage();
 
         return message;
     }
@@ -56,19 +41,13 @@ public class WebSocketInboundMetricInterceptor implements ExecutorChannelInterce
     public Message<?> beforeHandle(Message<?> message, MessageChannel channel, MessageHandler handler) {
         final StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null) {
+        if (!isMetricsCollectible(accessor)) {
             return message;
         }
 
-        String messageId = (String) accessor.getHeader("messageId");
-        if (messageId != null) {
-            try {
-                webSocketMetricService.stopInboundMessageTimer(messageId);
-                webSocketMetricService.startBusinessTimer(messageId);
-            } catch (Exception e) {
-                log.warn("WebSocket 시간 측정 중 에러", e);
-            }
-        }
+        final String messageId = (String) accessor.getHeader("messageId");
+
+        webSocketMetricService.startBusinessTimer(messageId);
 
         return message;
     }
@@ -77,17 +56,23 @@ public class WebSocketInboundMetricInterceptor implements ExecutorChannelInterce
     public void afterMessageHandled(Message<?> message, MessageChannel channel, MessageHandler handler, Exception ex) {
         final StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null) {
+        if (!isMetricsCollectible(accessor)) {
             return;
         }
 
         String messageId = (String) accessor.getHeader("messageId");
-        if (messageId != null) {
-            try {
-                webSocketMetricService.stopBusinessTimer(messageId);
-            } catch (Exception e) {
-                log.warn("WebSocket 로직 처리 시간 측정 완료 중 에러", e);
-            }
+        webSocketMetricService.stopInboundMessageTimer(messageId);
+        webSocketMetricService.stopBusinessTimer(messageId);
+    }
+
+    private boolean isMetricsCollectible(StompHeaderAccessor accessor) {
+
+        if (accessor == null) {
+            return false;
         }
+
+        final StompCommand command = accessor.getCommand();
+
+        return command == StompCommand.SEND;
     }
 }

@@ -19,7 +19,7 @@ public class TestStompSession {
     private final StompSession session;
     private final ObjectMapper objectMapper;
 
-    protected TestStompSession(StompSession session, ObjectMapper objectMapper) {
+    public TestStompSession(StompSession session, ObjectMapper objectMapper) {
         this.session = session;
         this.objectMapper = objectMapper;
     }

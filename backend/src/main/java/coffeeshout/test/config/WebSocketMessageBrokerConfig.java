@@ -1,13 +1,14 @@
-package coffeeshout.global.config;
+package coffeeshout.test.config;
 
 
 import coffeeshout.global.websocket.interceptor.ShutdownAwareHandshakeInterceptor;
-import coffeeshout.global.websocket.interceptor.WebSocketInboundMetricInterceptor;
-import coffeeshout.global.websocket.interceptor.WebSocketOutboundMetricInterceptor;
+import coffeeshout.test.config.interceptor.WebSocketInboundMetricInterceptor;
+import coffeeshout.test.config.interceptor.WebSocketOutboundMetricInterceptor;
 import io.micrometer.context.ContextSnapshot;
 import io.micrometer.context.ContextSnapshotFactory;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -21,13 +22,15 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
+@Getter
 public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketInboundMetricInterceptor webSocketInboundMetricInterceptor;
     private final WebSocketOutboundMetricInterceptor webSocketOutboundMetricInterceptor;
     private final ShutdownAwareHandshakeInterceptor shutdownAwareHandshakeInterceptor;
-    private final ObservationRegistry observationRegistry;
-    private final ContextSnapshotFactory snapshotFactory;
+
+    private ThreadPoolTaskExecutor inboundExecutor;
+    private ThreadPoolTaskExecutor outboundExecutor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -53,41 +56,24 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(32);
-        executor.setMaxPoolSize(32);
-        executor.setThreadNamePrefix("inbound-");
-        executor.setQueueCapacity(2048);
-        executor.setKeepAliveSeconds(60);
-        executor.initialize();
+        inboundExecutor = new ThreadPoolTaskExecutor();
+        inboundExecutor.setCorePoolSize(1);
+        inboundExecutor.setMaxPoolSize(1);
+        inboundExecutor.setThreadNamePrefix("inbound-");
+        inboundExecutor.initialize();
         registration.interceptors(webSocketInboundMetricInterceptor)
-                .executor(executor);
+                .executor(inboundExecutor);
     }
 
     @Override
     public void configureClientOutboundChannel(ChannelRegistration registration) {
         registration.interceptors(webSocketOutboundMetricInterceptor);
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setThreadNamePrefix("outbound-");
-        executor.setTaskDecorator(runnable -> {
-            final ContextSnapshot snapshot = snapshotFactory.captureAll();
-            return snapshot.wrap(() -> {
-                final Observation parent = observationRegistry.getCurrentObservation();
-                if (parent != null) {
-                    Observation.createNotStarted("websocket.outbound", observationRegistry)
-                            .parentObservation(parent)
-                            .lowCardinalityKeyValue("thread", Thread.currentThread().getName())
-                            .observeChecked(runnable::run);
-                } else {
-                    runnable.run();
-                }
-            });
-        });
-        executor.setCorePoolSize(16);
-        executor.setMaxPoolSize(16);
-        executor.setQueueCapacity(4096);
-        executor.setKeepAliveSeconds(60);
-        executor.initialize();
-        registration.executor(executor);
+        outboundExecutor = new ThreadPoolTaskExecutor();
+        outboundExecutor.setThreadNamePrefix("outbound-");
+        outboundExecutor.setCorePoolSize(1);
+        outboundExecutor.setMaxPoolSize(1);
+        outboundExecutor.setKeepAliveSeconds(60);
+        outboundExecutor.initialize();
+        registration.executor(outboundExecutor);
     }
 }
