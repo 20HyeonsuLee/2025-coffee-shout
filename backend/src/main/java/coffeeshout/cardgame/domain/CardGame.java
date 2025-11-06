@@ -72,6 +72,17 @@ public class CardGame implements Playable {
         this.state = CardGameState.PLAYING;
     }
 
+    public void selectCard(Player player, Integer cardIndex, int port) {
+        if (state != CardGameState.PLAYING) {
+            throw new InvalidStateException(
+                    CardGameErrorCode.NOT_PLAYING_STATE,
+                    "현재 게임이 진행중인 상태가 아닙니다. state=" + state
+            );
+        }
+        final Card pick = deck.pick(cardIndex);
+        System.out.println(String.format("player: %s, card: %d, port: %d 카드 뽑기 완료", player.getName().value(), cardIndex, port));
+        playerHands.put(player, pick);
+    }
     public void selectCard(Player player, Integer cardIndex) {
         if (state != CardGameState.PLAYING) {
             throw new InvalidStateException(
@@ -79,8 +90,8 @@ public class CardGame implements Playable {
                     "현재 게임이 진행중인 상태가 아닙니다. state=" + state
             );
         }
-
-        playerHands.put(player, deck.pick(cardIndex));
+        final Card pick = deck.pick(cardIndex);
+        playerHands.put(player, pick);
     }
 
     public boolean isFinishedThisRound() {

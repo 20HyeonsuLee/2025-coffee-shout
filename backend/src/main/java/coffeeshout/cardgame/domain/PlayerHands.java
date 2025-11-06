@@ -12,7 +12,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import lombok.Getter;
 
+@Getter
 public class PlayerHands {
 
     private final Map<Player, CardHand> playerHands;
