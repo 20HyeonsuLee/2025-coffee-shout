@@ -57,7 +57,7 @@ management:
       probability: 0.1
   otlp:
     tracing:
-      endpoint: http://13.125.123.115:4318/v1/traces
+      endpoint: http://43.203.166.185:4318/v1/traces
   metrics:
     enable:
       tomcat: true
