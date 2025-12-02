@@ -9,6 +9,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
@@ -23,17 +24,26 @@ public class RedisConfig {
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
-        final RedisStandaloneConfiguration redisStandaloneConfiguration =
+        RedisStandaloneConfiguration redisConfig =
                 new RedisStandaloneConfiguration(redisProperties.host(), redisProperties.port());
 
-        final LettuceClientConfiguration.LettuceClientConfigurationBuilder clientConfig =
-                LettuceClientConfiguration.builder();
+        GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(8);
+        poolConfig.setMaxIdle(8);
+        poolConfig.setMinIdle(2);
+
+        LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
+                .poolConfig(poolConfig)
+                .build();
 
         if (redisProperties.ssl().enabled()) {
-            clientConfig.useSsl();
+            clientConfig = LettucePoolingClientConfiguration.builder()
+                    .poolConfig(poolConfig)
+                    .useSsl()
+                    .build();
         }
 
-        return new LettuceConnectionFactory(redisStandaloneConfiguration, clientConfig.build());
+        return new LettuceConnectionFactory(redisConfig, clientConfig);
     }
 
     @Bean
