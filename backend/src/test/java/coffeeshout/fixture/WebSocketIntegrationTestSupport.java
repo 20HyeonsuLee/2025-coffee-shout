@@ -61,7 +61,7 @@ public abstract class WebSocketIntegrationTestSupport {
         redisMessageListenerContainer.start();
     }
 
-    protected TestStompSession createSession() throws InterruptedException, ExecutionException, TimeoutException {
+    public TestStompSession createSession() throws InterruptedException, ExecutionException, TimeoutException {
         SockJsClient sockJsClient = new SockJsClient(List.of(
                 new WebSocketTransport(new StandardWebSocketClient())
         ));

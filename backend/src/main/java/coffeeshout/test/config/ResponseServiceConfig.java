@@ -8,7 +8,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 @Configuration
 public class ResponseServiceConfig {
 
-    @Bean
+    @Bean(name = "responseScheduler")
     public TaskScheduler responseServiceTaskScheduler() {
         final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
         scheduler.setPoolSize(1);

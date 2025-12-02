@@ -80,7 +80,6 @@ public class CardGame implements Playable {
             );
         }
         final Card pick = deck.pick(cardIndex);
-        System.out.println(String.format("player: %s, card: %d, port: %d 카드 뽑기 완료", player.getName().value(), cardIndex, port));
         playerHands.put(player, pick);
     }
     public void selectCard(Player player, Integer cardIndex) {

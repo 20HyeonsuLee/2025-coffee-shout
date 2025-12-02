@@ -6,12 +6,11 @@ import coffeeshout.test.config.LoadConfig;
 import java.time.Duration;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
 public class ResponseService {
 
     private final LoggingSimpMessagingTemplate messageTemplate;
@@ -19,9 +18,23 @@ public class ResponseService {
     private final LoadConfig loadConfig;
     private final TaskScheduler scheduler;
     private final AtomicLong counter = new AtomicLong();
+    private final TaskScheduler taskScheduler;
 
     private ScheduledFuture<?> future;
     private int currentTps = 10;
+
+    public ResponseService(
+            LoggingSimpMessagingTemplate messageTemplate,
+            LoadSimulator loadSimulator,
+            LoadConfig loadConfig,
+            @Qualifier("responseScheduler") TaskScheduler scheduler,
+            TaskScheduler taskScheduler) {
+        this.messageTemplate = messageTemplate;
+        this.loadSimulator = loadSimulator;
+        this.loadConfig = loadConfig;
+        this.scheduler = scheduler;
+        this.taskScheduler = taskScheduler;
+    }
 
     public void start() {
         counter.set(0);

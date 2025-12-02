@@ -25,17 +25,25 @@ public class WebSocketOutboundMetricInterceptor implements ExecutorChannelInterc
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
-        final StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-
-        if (!isMetricsCollectible(accessor)) {
+        final var type = SimpMessageHeaderAccessor.getMessageType(message.getHeaders());
+        if (SimpMessageType.HEARTBEAT.equals(type)) {
             return message;
         }
 
-        final String messageId = UUID.randomUUID().toString();
-        accessor.setHeader("messageId", messageId);
-
-        webSocketMetricService.startOutboundMessageTimer(messageId);
-        webSocketMetricService.incrementOutboundMessage();
+        if (SimpMessageType.MESSAGE.equals(type)) {
+            try {
+                final MessageHeaderAccessor mutableAccessor = SimpMessageHeaderAccessor.getMutableAccessor(message);
+                mutableAccessor.setHeader("messageId", UUID.randomUUID().toString());
+                Message<?> headerMessage = MessageBuilder.createMessage(
+                        message.getPayload(),
+                        mutableAccessor.getMessageHeaders()
+                );
+                webSocketMetricService.startOutboundMessageTimer(headerMessage.getHeaders().get("messageId").toString());
+                return headerMessage;
+            } catch (Exception e) {
+                log.error("WebSocket 아웃바운드 메시지 전송 시간 측정 시작 중 에러", e);
+            }
+        }
 
         return message;
     }
@@ -47,24 +55,24 @@ public class WebSocketOutboundMetricInterceptor implements ExecutorChannelInterc
             MessageHandler handler,
             Exception exception
     ) {
-        final StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-
-        if (!isMetricsCollectible(accessor)) {
+        final var type = SimpMessageHeaderAccessor.getMessageType(message.getHeaders());
+        if (SimpMessageType.HEARTBEAT.equals(type)) {
             return;
         }
 
-        final String messageId = (String) accessor.getHeader("messageId");
-        webSocketMetricService.stopOutboundMessageTimer(messageId);
-    }
-
-    private boolean isMetricsCollectible(StompHeaderAccessor accessor) {
-
-        if (accessor == null) {
-            return false;
+        if (SimpMessageType.MESSAGE.equals(type)) {
+            try {
+                final String timingId = message.getHeaders().get("messageId").toString();
+                webSocketMetricService.stopOutboundMessageTimer(timingId);
+            } catch (Exception e) {
+                log.error("WebSocket 아웃바운드 메시지 전송 시간 측정 완료 중 에러", e);
+            }
         }
 
-        final StompCommand command = accessor.getCommand();
-
-        return command == StompCommand.MESSAGE;
+        try {
+            webSocketMetricService.incrementOutboundMessage();
+        } catch (Exception e) {
+            log.error("WebSocket 아웃바운드 메트릭 수집 중 에러", e);
+        }
     }
 }

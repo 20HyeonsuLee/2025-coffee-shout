@@ -67,13 +67,12 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
 
     @Override
     public void configureClientOutboundChannel(ChannelRegistration registration) {
-        registration.interceptors(webSocketOutboundMetricInterceptor);
         outboundExecutor = new ThreadPoolTaskExecutor();
         outboundExecutor.setThreadNamePrefix("outbound-");
         outboundExecutor.setCorePoolSize(1);
         outboundExecutor.setMaxPoolSize(1);
         outboundExecutor.setKeepAliveSeconds(60);
         outboundExecutor.initialize();
-        registration.executor(outboundExecutor);
+        registration.interceptors(webSocketOutboundMetricInterceptor).executor(outboundExecutor);
     }
 }
