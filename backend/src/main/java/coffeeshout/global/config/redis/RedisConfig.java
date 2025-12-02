@@ -2,7 +2,9 @@ package coffeeshout.global.config.redis;
 
 import coffeeshout.global.config.properties.RedisProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.lettuce.core.api.StatefulConnection;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -33,12 +35,12 @@ public class RedisConfig {
         poolConfig.setMinIdle(2);
 
         LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                .poolConfig(poolConfig)
+                .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
                 .build();
 
         if (redisProperties.ssl().enabled()) {
             clientConfig = LettucePoolingClientConfiguration.builder()
-                    .poolConfig(poolConfig)
+                    .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
                     .useSsl()
                     .build();
         }
