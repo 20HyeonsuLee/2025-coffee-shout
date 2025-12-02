@@ -32,11 +32,11 @@ public class TapCommandEventHandler implements RacingGameEventHandler<TapCommand
             );
 
         } catch (InvalidStateException e) {
-            log.warn("탭 이벤트 처리 중 상태 오류: eventId={}, joinCode={}",
-                    event.eventId(), event.joinCode(), e);
+//            log.warn("탭 이벤트 처리 중 상태 오류: eventId={}, joinCode={}",
+//                    event.eventId(), event.joinCode(), e);
         } catch (Exception e) {
-            log.error("탭 이벤트 처리 실패: eventId={}, joinCode={}",
-                    event.eventId(), event.joinCode(), e);
+//            log.error("탭 이벤트 처리 실패: eventId={}, joinCode={}",
+//                    event.eventId(), event.joinCode(), e);
         }
     }
 
