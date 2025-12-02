@@ -3,9 +3,9 @@ spring:
     name:
       coffee-shout
   datasource:
-    url: ${MYSQL_URL}
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
+    url: jdbc:mysql://localhost:33061/coffee_shout
+    username: root
+    password: coffee-shout_123
     driver-class-name: com.mysql.cj.jdbc.Driver
   lifecycle:
     timeout-per-shutdown-phase: 5m
@@ -54,10 +54,10 @@ management:
   tracing:
     enabled: true
     sampling:
-      probability: ${TRACE_SAMPLING_PROBABILITY}
+      probability: 0.1
   otlp:
     tracing:
-      endpoint: ${TEMPO_URL}
+      endpoint: http://13.125.123.115:4318/v1/traces
   metrics:
     enable:
       tomcat: true

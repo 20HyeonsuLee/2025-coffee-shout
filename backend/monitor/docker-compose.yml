@@ -1,6 +1,29 @@
 version: '3.8'
 
 services:
+  #tempo
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo.yaml", "-config.expand-env=true" ]
+    volumes:
+      - ./data/tempo:/tmp/tempo
+      - ./logs/tempo:/var/log/tempo
+      - ./conf/tempo.yml:/etc/tempo.yaml
+    expose:
+      - "3200"   # Grafana 쿼리용
+      - "4318"   # Spring OTLP HTTP
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Seoul
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "wget --quiet --tries=1 --spider http://localhost:3200/ready && wget --quiet --tries=1 --spider http://localhost:4318/ready" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - .env
+
   # Prometheus
   prometheus:
     image: prom/prometheus:latest

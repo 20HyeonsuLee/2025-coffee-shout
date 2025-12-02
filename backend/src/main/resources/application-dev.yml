@@ -1,7 +1,10 @@
 spring:
   data:
     redis:
-      host: ${REDIS_HOST}
+      host: coffee-shout-test-f6yew9.serverless.apn2.cache.amazonaws.com
+      port: 6379
+      ssl:
+        enabled: true
   jpa:
     hibernate:
       ddl-auto: validate
