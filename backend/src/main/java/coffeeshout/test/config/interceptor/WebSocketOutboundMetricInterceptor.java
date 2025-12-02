@@ -39,6 +39,7 @@ public class WebSocketOutboundMetricInterceptor implements ExecutorChannelInterc
                         mutableAccessor.getMessageHeaders()
                 );
                 webSocketMetricService.startOutboundMessageTimer(headerMessage.getHeaders().get("messageId").toString());
+                webSocketMetricService.incrementOutboundMessage();
                 return headerMessage;
             } catch (Exception e) {
                 log.error("WebSocket 아웃바운드 메시지 전송 시간 측정 시작 중 에러", e);
@@ -67,12 +68,6 @@ public class WebSocketOutboundMetricInterceptor implements ExecutorChannelInterc
             } catch (Exception e) {
                 log.error("WebSocket 아웃바운드 메시지 전송 시간 측정 완료 중 에러", e);
             }
-        }
-
-        try {
-            webSocketMetricService.incrementOutboundMessage();
-        } catch (Exception e) {
-            log.error("WebSocket 아웃바운드 메트릭 수집 중 에러", e);
         }
     }
 }
