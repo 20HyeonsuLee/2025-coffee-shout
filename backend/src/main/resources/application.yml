@@ -1,4 +1,6 @@
 spring:
+  main:
+    allow-bean-definition-overriding: true
   application:
     name:
       coffee-shout
@@ -76,6 +78,8 @@ server:
     accept-count: 300
 
 websocket:
+  inbound:
+    virtual-threads: false
   docs:
     enabled: true
     base-package: "coffeeshout"
