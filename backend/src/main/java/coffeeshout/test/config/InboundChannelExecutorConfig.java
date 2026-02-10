@@ -36,8 +36,8 @@ public class InboundChannelExecutorConfig {
             }
 
             final ThreadPoolTaskExecutor poolExecutor = new ThreadPoolTaskExecutor();
-            poolExecutor.setCorePoolSize(8);
-            poolExecutor.setMaxPoolSize(8);
+            poolExecutor.setCorePoolSize(32);
+            poolExecutor.setMaxPoolSize(32);
             poolExecutor.setQueueCapacity(2048);
             poolExecutor.setThreadNamePrefix("inbound-");
             poolExecutor.initialize();
