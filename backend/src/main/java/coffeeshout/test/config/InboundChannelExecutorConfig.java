@@ -23,6 +23,9 @@ public class InboundChannelExecutorConfig {
         @Value("${websocket.inbound.virtual-threads:false}")
         private boolean useVirtualThreads;
 
+        @Value("${websocket.inbound.concurrency-limit:64}")
+        private int concurrencyLimit;
+
         @Override
         public Object postProcessAfterInitialization(Object bean, String beanName) {
             if (!"clientInboundChannelExecutor".equals(beanName)) {
@@ -32,6 +35,7 @@ public class InboundChannelExecutorConfig {
             if (useVirtualThreads) {
                 final SimpleAsyncTaskExecutor virtualExecutor = new SimpleAsyncTaskExecutor("inbound-");
                 virtualExecutor.setVirtualThreads(true);
+                virtualExecutor.setConcurrencyLimit(concurrencyLimit);
                 return virtualExecutor;
             }
 
