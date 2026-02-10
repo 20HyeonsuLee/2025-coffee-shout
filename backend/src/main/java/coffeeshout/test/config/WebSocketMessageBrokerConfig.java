@@ -10,7 +10,11 @@ import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -29,7 +33,10 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
     private final WebSocketOutboundMetricInterceptor webSocketOutboundMetricInterceptor;
     private final ShutdownAwareHandshakeInterceptor shutdownAwareHandshakeInterceptor;
 
-    private ThreadPoolTaskExecutor inboundExecutor;
+    @Value("${websocket.inbound.virtual-threads:false}")
+    private boolean useVirtualThreads;
+
+    private TaskExecutor inboundExecutor;
     private ThreadPoolTaskExecutor outboundExecutor;
 
     @Override
@@ -54,16 +61,28 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
                 .withSockJS();
     }
 
+    @Bean
+    public TaskExecutor clientInboundChannelExecutor() {
+        if (useVirtualThreads) {
+            final SimpleAsyncTaskExecutor virtualExecutor = new SimpleAsyncTaskExecutor("inbound-");
+            virtualExecutor.setVirtualThreads(true);
+            inboundExecutor = virtualExecutor;
+            return virtualExecutor;
+        }
+
+        final ThreadPoolTaskExecutor poolExecutor = new ThreadPoolTaskExecutor();
+        poolExecutor.setCorePoolSize(8);
+        poolExecutor.setMaxPoolSize(8);
+        poolExecutor.setQueueCapacity(2048);
+        poolExecutor.setThreadNamePrefix("inbound-");
+        poolExecutor.initialize();
+        inboundExecutor = poolExecutor;
+        return poolExecutor;
+    }
+
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        inboundExecutor = new ThreadPoolTaskExecutor();
-        inboundExecutor.setCorePoolSize(8);
-        inboundExecutor.setMaxPoolSize(8);
-        inboundExecutor.setQueueCapacity(2048);
-        inboundExecutor.setThreadNamePrefix("inbound-");
-        inboundExecutor.initialize();
-        registration.interceptors(webSocketInboundMetricInterceptor)
-                .executor(inboundExecutor);
+        registration.interceptors(webSocketInboundMetricInterceptor);
     }
 
     @Override
@@ -72,7 +91,7 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
         outboundExecutor.setThreadNamePrefix("outbound-");
         outboundExecutor.setCorePoolSize(16);
         outboundExecutor.setMaxPoolSize(16);
-        inboundExecutor.setQueueCapacity(2048);
+        outboundExecutor.setQueueCapacity(2048);
         outboundExecutor.setKeepAliveSeconds(60);
         outboundExecutor.initialize();
         registration.interceptors(webSocketOutboundMetricInterceptor).executor(outboundExecutor);

@@ -11,8 +11,8 @@ services:
       - ./logs/tempo:/var/log/tempo
       - ./conf/tempo.yml:/etc/tempo.yaml
     expose:
-      - "3200"   # Grafana 쿼리용
-      - "4318"   # Spring OTLP HTTP
+      - "3200"
+      - "4318"
     restart: unless-stopped
     environment:
       - TZ=Asia/Seoul
