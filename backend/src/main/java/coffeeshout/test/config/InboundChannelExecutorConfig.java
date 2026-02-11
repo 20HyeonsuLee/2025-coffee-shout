@@ -1,7 +1,6 @@
 package coffeeshout.test.config;
 
 import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,11 +24,11 @@ public class InboundChannelExecutorConfig {
             @Qualifier("clientInboundChannelExecutor") TaskExecutor executor) {
         return registry -> {
             if (executor instanceof CountingTaskExecutor counting) {
-                Gauge.builder("websocket.inbound.vt.active", counting::getActiveCount)
-                        .description("현재 실행 중인 inbound 가상 스레드 수")
+                Gauge.builder("websocket.inbound.executor.active", counting::getActiveCount)
+                        .description("현재 실행 중인 inbound 스레드 수")
                         .register(registry);
-                Gauge.builder("websocket.inbound.vt.total", counting::getTotalCount)
-                        .description("생성된 inbound 가상 스레드 총 수")
+                Gauge.builder("websocket.inbound.executor.total", counting::getTotalCount)
+                        .description("생성된 inbound 태스크 총 수")
                         .register(registry);
             }
         };
@@ -56,13 +55,7 @@ public class InboundChannelExecutorConfig {
                 return new CountingTaskExecutor(virtualExecutor);
             }
 
-            final ThreadPoolTaskExecutor poolExecutor = new ThreadPoolTaskExecutor();
-            poolExecutor.setCorePoolSize(32);
-            poolExecutor.setMaxPoolSize(32);
-            poolExecutor.setQueueCapacity(2048);
-            poolExecutor.setThreadNamePrefix("inbound-");
-            poolExecutor.initialize();
-            return poolExecutor;
+            return bean;
         }
     }
 }

@@ -6,6 +6,7 @@ import coffeeshout.test.config.interceptor.WebSocketInboundMetricInterceptor;
 import coffeeshout.test.config.interceptor.WebSocketOutboundMetricInterceptor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -26,6 +27,12 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
     private final ShutdownAwareHandshakeInterceptor shutdownAwareHandshakeInterceptor;
 
     private ThreadPoolTaskExecutor outboundExecutor;
+
+    @Value("${websocket.inbound.virtual-threads:false}")
+    private boolean useVirtualThreads;
+
+    @Value("${websocket.inbound.pool-size}")
+    private int inboundPoolSize;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -51,6 +58,16 @@ public class WebSocketMessageBrokerConfig implements WebSocketMessageBrokerConfi
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
+        if (!useVirtualThreads) {
+            ThreadPoolTaskExecutor inboundExecutor = new ThreadPoolTaskExecutor();
+            inboundExecutor.setThreadNamePrefix("inbound-");
+            inboundExecutor.setCorePoolSize(inboundPoolSize);
+            inboundExecutor.setMaxPoolSize(inboundPoolSize);
+            inboundExecutor.setQueueCapacity(4096);
+            inboundExecutor.setKeepAliveSeconds(60);
+            inboundExecutor.initialize();
+            registration.executor(inboundExecutor);
+        }
         registration.interceptors(webSocketInboundMetricInterceptor);
     }
 

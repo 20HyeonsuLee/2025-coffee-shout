@@ -79,6 +79,7 @@ websocket:
   inbound:
     virtual-threads: true
     concurrency-limit: 64
+    pool-size: 32
   docs:
     enabled: true
     base-package: "coffeeshout"
