@@ -69,6 +69,8 @@ management:
 server:
   shutdown: graceful
   tomcat:
+    mbeanregistry:
+      enabled: true
     threads:
       max: 200
       min-spare: 30
