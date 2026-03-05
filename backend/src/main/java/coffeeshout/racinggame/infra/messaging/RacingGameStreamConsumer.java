@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.redis.connection.stream.ObjectRecord;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
@@ -21,17 +21,17 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class RacingGameStreamConsumer implements StreamListener<String, ObjectRecord<String, String>> {
+public class RacingGameStreamConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final Map<RacingGameEventType, RacingGameEventHandler<?>> handlers;
-    private final StreamMessageListenerContainer<String, ObjectRecord<String, String>> container;
+    private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> container;
     private final RedisStreamProperties redisStreamProperties;
     private final ObjectMapper objectMapper;
 
     public RacingGameStreamConsumer(
             final List<RacingGameEventHandler<?>> handlers,
-            @Qualifier("concurrentStreamMessageListenerContainer")
-            final StreamMessageListenerContainer<String, ObjectRecord<String, String>> container,
+            @Qualifier("racingGameStreamContainer")
+            final StreamMessageListenerContainer<String, MapRecord<String, String, String>> container,
             final RedisStreamProperties redisStreamProperties,
             final ObjectMapper objectMapper
     ) {
@@ -54,9 +54,9 @@ public class RacingGameStreamConsumer implements StreamListener<String, ObjectRe
     }
 
     @Override
-    public void onMessage(final ObjectRecord<String, String> message) {
+    public void onMessage(final MapRecord<String, String, String> message) {
         try {
-            final String body = message.getValue();
+            final String body = message.getValue().get("payload");
             final RacingGameEventType eventType = extractEventType(body);
 
             if (!handlers.containsKey(eventType)) {

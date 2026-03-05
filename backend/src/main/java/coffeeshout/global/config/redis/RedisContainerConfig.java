@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
@@ -39,6 +40,23 @@ public class RedisContainerConfig {
     public StreamMessageListenerContainer<String, ObjectRecord<String, String>> concurrentStreamMessageListenerContainer(
             RedisConnectionFactory redisConnectionFactory) {
         return getListenerContainer(redisConnectionFactory, redisStreamTaskExecutor());
+    }
+
+    @Bean(destroyMethod = "stop")
+    @DependsOn("redisStreamInit")
+    public StreamMessageListenerContainer<String, MapRecord<String, String, String>> racingGameStreamContainer(
+            RedisConnectionFactory redisConnectionFactory) {
+        final StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
+                StreamMessageListenerContainerOptions.builder()
+                        .batchSize(10)
+                        .executor(racingGameThreadExecutor())
+                        .pollTimeout(Duration.ofSeconds(2))
+                        .build();
+
+        final StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =
+                StreamMessageListenerContainer.create(redisConnectionFactory, options);
+        container.start();
+        return container;
     }
 
     private StreamMessageListenerContainer<String, ObjectRecord<String, String>> getListenerContainer(
@@ -79,6 +97,20 @@ public class RedisContainerConfig {
         ex.setMaxPoolSize(1);
         ex.setQueueCapacity(100);
         ex.setThreadNamePrefix("redis-card-select-");
+        ex.setWaitForTasksToCompleteOnShutdown(true);
+        ex.setAwaitTerminationSeconds(10);
+        ex.initialize();
+
+        return ex;
+    }
+
+    private ThreadPoolTaskExecutor racingGameThreadExecutor() {
+        ThreadPoolTaskExecutor ex = new ThreadPoolTaskExecutor();
+
+        ex.setCorePoolSize(4);
+        ex.setMaxPoolSize(8);
+        ex.setQueueCapacity(100);
+        ex.setThreadNamePrefix("redis-racing-");
         ex.setWaitForTasksToCompleteOnShutdown(true);
         ex.setAwaitTerminationSeconds(10);
         ex.initialize();
