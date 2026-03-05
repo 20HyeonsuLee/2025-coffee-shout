@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 public record RedisStreamProperties(
         @NotBlank String roomJoinKey,
         @NotBlank String cardGameSelectKey,
+        @NotBlank String racingGameKey,
         @Positive int maxLength
 ) {
 }

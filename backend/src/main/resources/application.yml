@@ -23,6 +23,7 @@ spring:
       stream:
         room-join-key: room:broadcast
         card-game-select-key: cardGame:select:broadcast
+        racing-game-key: racingGame:broadcast
         max-length: 100
 
 room:

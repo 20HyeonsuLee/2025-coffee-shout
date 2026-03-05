@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.concurrent.Executor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.ObjectRecord;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
@@ -13,19 +14,28 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 public class RedisContainerConfig {
 
+    @Bean
+    public String redisStreamInit(RedisStreamInitializer initializer) {
+        initializer.initialize();
+        return "initialized";
+    }
+
     @Bean(destroyMethod = "stop")
+    @DependsOn("redisStreamInit")
     public StreamMessageListenerContainer<String, ObjectRecord<String, String>> roomEnterStreamContainer(
             RedisConnectionFactory redisConnectionFactory) {
         return getListenerContainer(redisConnectionFactory, roomEnterThreadExecutor());
     }
 
     @Bean(destroyMethod = "stop")
+    @DependsOn("redisStreamInit")
     public StreamMessageListenerContainer<String, ObjectRecord<String, String>> cardSelectStreamContainer(
             RedisConnectionFactory redisConnectionFactory) {
         return getListenerContainer(redisConnectionFactory, cardSelectThreadExecutor());
     }
 
     @Bean(destroyMethod = "stop")
+    @DependsOn("redisStreamInit")
     public StreamMessageListenerContainer<String, ObjectRecord<String, String>> concurrentStreamMessageListenerContainer(
             RedisConnectionFactory redisConnectionFactory) {
         return getListenerContainer(redisConnectionFactory, redisStreamTaskExecutor());
