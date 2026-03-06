@@ -18,8 +18,11 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -32,6 +35,7 @@ public class RacingGameStreamProducer {
     private final ObjectMapper objectMapper;
     private final boolean asyncEnabled;
     private final int asyncConnectionCount;
+    private final Timer xaddTimer;
 
     // 단일 커넥션 → 여러 커넥션으로 분리
     private final List<StatefulRedisConnection<String, String>> connections = new ArrayList<>();
@@ -43,6 +47,7 @@ public class RacingGameStreamProducer {
             final StringRedisTemplate stringRedisTemplate,
             final RedisStreamProperties redisStreamProperties,
             final ObjectMapper objectMapper,
+            final MeterRegistry meterRegistry,
             @Value("${racing-game.stream.async:false}") final boolean asyncEnabled,
             @Value("${racing-game.stream.async-connection-count:4}") final int asyncConnectionCount
     ) {
@@ -52,6 +57,10 @@ public class RacingGameStreamProducer {
         this.objectMapper = objectMapper;
         this.asyncEnabled = asyncEnabled;
         this.asyncConnectionCount = asyncConnectionCount;
+        this.xaddTimer = Timer.builder("racing.xadd.latency")
+                .description("XADD async round-trip latency")
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .register(meterRegistry);
     }
 
     @PostConstruct
@@ -98,10 +107,7 @@ public class RacingGameStreamProducer {
         asyncCommandsList.get(idx)
                 .xadd(streamKey, xAddArgs, "payload", eventJson)
                 .whenComplete((messageId, throwable) -> {
-                    final long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
-                    if (elapsedMs > 10) {
-                        log.warn("XADD slow: {}ms, conn={}", elapsedMs, idx);
-                    }
+                    xaddTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
                     if (throwable != null) {
                         log.error("레이싱 게임 이벤트 발송 실패: streamKey={}", streamKey, throwable);
                     }
