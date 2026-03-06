@@ -18,6 +18,10 @@ import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
 @Slf4j
 @Component
 public class RacingGameStreamProducer {
@@ -27,31 +31,39 @@ public class RacingGameStreamProducer {
     private final RedisStreamProperties redisStreamProperties;
     private final ObjectMapper objectMapper;
     private final boolean asyncEnabled;
+    private final int asyncConnectionCount;
 
-    private StatefulRedisConnection<String, String> sharedConnection;
-    private RedisAsyncCommands<String, String> asyncCommands;
+    // 단일 커넥션 → 여러 커넥션으로 분리
+    private final List<StatefulRedisConnection<String, String>> connections = new ArrayList<>();
+    private final List<RedisAsyncCommands<String, String>> asyncCommandsList = new ArrayList<>();
+    private final AtomicInteger counter = new AtomicInteger(0);
 
     public RacingGameStreamProducer(
             final LettuceConnectionFactory connectionFactory,
             final StringRedisTemplate stringRedisTemplate,
             final RedisStreamProperties redisStreamProperties,
             final ObjectMapper objectMapper,
-            @Value("${racing-game.stream.async:false}") final boolean asyncEnabled
+            @Value("${racing-game.stream.async:false}") final boolean asyncEnabled,
+            @Value("${racing-game.stream.async-connection-count:4}") final int asyncConnectionCount
     ) {
         this.connectionFactory = connectionFactory;
         this.stringRedisTemplate = stringRedisTemplate;
         this.redisStreamProperties = redisStreamProperties;
         this.objectMapper = objectMapper;
         this.asyncEnabled = asyncEnabled;
+        this.asyncConnectionCount = asyncConnectionCount;
     }
 
     @PostConstruct
     public void init() {
         if (asyncEnabled) {
             final RedisClient nativeClient = (RedisClient) connectionFactory.getNativeClient();
-            sharedConnection = nativeClient.connect(StringCodec.UTF8);
-            asyncCommands = sharedConnection.async();
-            log.info("RacingGameStreamProducer: async 모드 활성화");
+            for (int i = 0; i < asyncConnectionCount; i++) {
+                final StatefulRedisConnection<String, String> conn = nativeClient.connect(StringCodec.UTF8);
+                connections.add(conn);
+                asyncCommandsList.add(conn.async());
+            }
+            log.info("RacingGameStreamProducer: async 모드 활성화 (커넥션 {}개)", connections.size());
         } else {
             log.info("RacingGameStreamProducer: blocking 모드 활성화");
         }
@@ -59,8 +71,8 @@ public class RacingGameStreamProducer {
 
     @PreDestroy
     public void destroy() {
-        if (sharedConnection != null) {
-            sharedConnection.close();
+        for (final StatefulRedisConnection<String, String> conn : connections) {
+            conn.closeAsync();
         }
     }
 
@@ -79,8 +91,15 @@ public class RacingGameStreamProducer {
                 .maxlen(redisStreamProperties.maxLength())
                 .approximateTrimming();
 
-        asyncCommands.xadd(streamKey, xAddArgs, "payload", eventJson)
+        // 라운드로빈으로 커넥션 분산
+        // Math.abs: Integer.MIN_VALUE 오버플로 방지
+        final int idx = Math.abs(counter.getAndIncrement() % asyncCommandsList.size());
+        asyncCommandsList.get(idx)
+                .xadd(streamKey, xAddArgs, "payload", eventJson)
                 .whenComplete((messageId, throwable) -> {
+                    if (throwable != null) {
+                        log.error("레이싱 게임 이벤트 발송 실패: streamKey={}", streamKey, throwable);
+                    }
                 });
     }
 
