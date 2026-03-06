@@ -8,12 +8,11 @@ import io.lettuce.core.XAddArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.codec.StringCodec;
-import io.netty.channel.EventLoop;
+import io.netty.channel.EventLoopGroup;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -41,9 +40,9 @@ public class RacingGameStreamProducer {
 
     // 단일 커넥션 → 여러 커넥션으로 분리
     private final List<StatefulRedisConnection<String, String>> connections = new ArrayList<>();
-    private final List<EventLoop> eventLoops = new ArrayList<>();
     private final List<RedisAsyncCommands<String, String>> asyncCommandsList = new ArrayList<>();
     private final AtomicInteger counter = new AtomicInteger(0);
+    private EventLoopGroup eventLoopGroup;
 
     public RacingGameStreamProducer(
             final LettuceConnectionFactory connectionFactory,
@@ -71,7 +70,7 @@ public class RacingGameStreamProducer {
     }
 
     @PostConstruct
-    public void init() throws Exception {
+    public void init() {
         if (asyncEnabled) {
             final RedisClient nativeClient = (RedisClient) connectionFactory.getNativeClient();
 
@@ -81,13 +80,9 @@ public class RacingGameStreamProducer {
                 asyncCommandsList.add(conn.async());
             }
 
-            final Method getChannel = connections.get(0).getClass()
-                    .getSuperclass().getDeclaredMethod("getChannel");
-            getChannel.setAccessible(true);
-            for (final StatefulRedisConnection<String, String> conn : connections) {
-                final io.netty.channel.Channel ch = (io.netty.channel.Channel) getChannel.invoke(conn);
-                eventLoops.add(ch.eventLoop());
-            }
+            eventLoopGroup = nativeClient.getResources()
+                    .eventLoopGroupProvider()
+                    .allocate(io.netty.channel.nio.NioEventLoopGroup.class);
 
             log.info("RacingGameStreamProducer: async 모드 활성화 (커넥션 {}개)", connections.size());
         } else {
@@ -123,7 +118,7 @@ public class RacingGameStreamProducer {
         final long startNanos = System.nanoTime();
 
         // event loop task queue 대기 시간 측정 (probe)
-        eventLoops.get(idx).execute(() ->
+        eventLoopGroup.next().execute(() ->
                 queueDelayTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS)
         );
 
