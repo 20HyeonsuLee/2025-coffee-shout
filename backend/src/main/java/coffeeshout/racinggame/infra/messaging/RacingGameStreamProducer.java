@@ -8,8 +8,16 @@ import io.lettuce.core.XAddArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.codec.StringCodec;
+import io.netty.channel.EventLoop;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.RedisStreamCommands;
@@ -17,13 +25,6 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Component
@@ -36,9 +37,11 @@ public class RacingGameStreamProducer {
     private final boolean asyncEnabled;
     private final int asyncConnectionCount;
     private final Timer xaddTimer;
+    private final Timer queueDelayTimer;
 
     // 단일 커넥션 → 여러 커넥션으로 분리
     private final List<StatefulRedisConnection<String, String>> connections = new ArrayList<>();
+    private final List<EventLoop> eventLoops = new ArrayList<>();
     private final List<RedisAsyncCommands<String, String>> asyncCommandsList = new ArrayList<>();
     private final AtomicInteger counter = new AtomicInteger(0);
 
@@ -61,17 +64,31 @@ public class RacingGameStreamProducer {
                 .description("XADD async round-trip latency")
                 .publishPercentiles(0.5, 0.95, 0.99)
                 .register(meterRegistry);
+        this.queueDelayTimer = Timer.builder("racing.xadd.queue.delay")
+                .description("Netty event loop queue scheduling delay")
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .register(meterRegistry);
     }
 
     @PostConstruct
-    public void init() {
+    public void init() throws Exception {
         if (asyncEnabled) {
             final RedisClient nativeClient = (RedisClient) connectionFactory.getNativeClient();
+
             for (int i = 0; i < asyncConnectionCount; i++) {
                 final StatefulRedisConnection<String, String> conn = nativeClient.connect(StringCodec.UTF8);
                 connections.add(conn);
                 asyncCommandsList.add(conn.async());
             }
+
+            final Method getChannel = connections.get(0).getClass()
+                    .getSuperclass().getDeclaredMethod("getChannel");
+            getChannel.setAccessible(true);
+            for (final StatefulRedisConnection<String, String> conn : connections) {
+                final io.netty.channel.Channel ch = (io.netty.channel.Channel) getChannel.invoke(conn);
+                eventLoops.add(ch.eventLoop());
+            }
+
             log.info("RacingGameStreamProducer: async 모드 활성화 (커넥션 {}개)", connections.size());
         } else {
             log.info("RacingGameStreamProducer: blocking 모드 활성화");
@@ -104,6 +121,12 @@ public class RacingGameStreamProducer {
         // Math.abs: Integer.MIN_VALUE 오버플로 방지
         final int idx = Math.abs(counter.getAndIncrement() % asyncCommandsList.size());
         final long startNanos = System.nanoTime();
+
+        // event loop task queue 대기 시간 측정 (probe)
+        eventLoops.get(idx).execute(() ->
+                queueDelayTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS)
+        );
+
         asyncCommandsList.get(idx)
                 .xadd(streamKey, xAddArgs, "payload", eventJson)
                 .whenComplete((messageId, throwable) -> {
