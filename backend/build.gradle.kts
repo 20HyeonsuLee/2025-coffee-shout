@@ -72,6 +72,13 @@ dependencies {
     implementation("io.micrometer:context-propagation")
 }
 
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    jvmArgs = listOf(
+        "-XX:+UseZGC",
+        "-XX:+ZGenerational"
+    )
+}
+
 tasks.withType<Test> {
     useJUnitPlatform()
 }
