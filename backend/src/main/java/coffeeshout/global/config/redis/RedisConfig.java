@@ -31,6 +31,7 @@ public class RedisConfig {
     public ClientResources lettuceClientResources(final MeterRegistry meterRegistry) {
         final MicrometerOptions options = MicrometerOptions.builder()
                 .enable()
+                .histogram(true)
                 .build();
 
         return ClientResources.builder()
