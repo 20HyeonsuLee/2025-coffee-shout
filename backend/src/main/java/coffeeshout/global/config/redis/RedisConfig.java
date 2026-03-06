@@ -3,6 +3,10 @@ package coffeeshout.global.config.redis;
 import coffeeshout.global.config.properties.RedisProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.api.StatefulConnection;
+import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
+import io.lettuce.core.metrics.MicrometerOptions;
+import io.lettuce.core.resource.ClientResources;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.context.annotation.Bean;
@@ -23,24 +27,39 @@ public class RedisConfig {
 
     private final RedisProperties redisProperties;
 
+    @Bean(destroyMethod = "shutdown")
+    public ClientResources lettuceClientResources(final MeterRegistry meterRegistry) {
+        final MicrometerOptions options = MicrometerOptions.builder()
+                .enable()
+                .build();
+
+        return ClientResources.builder()
+                .commandLatencyRecorder(new MicrometerCommandLatencyRecorder(meterRegistry, options))
+                .build();
+    }
+
     @Bean
-    public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration redisConfig =
+    public RedisConnectionFactory redisConnectionFactory(final ClientResources clientResources) {
+        final RedisStandaloneConfiguration redisConfig =
                 new RedisStandaloneConfiguration(redisProperties.host(), redisProperties.port());
 
-        GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
+        final GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(8);
         poolConfig.setMaxIdle(8);
         poolConfig.setMinIdle(2);
 
-        LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
-                .build();
+        LettucePoolingClientConfiguration clientConfig;
 
         if (redisProperties.ssl().enabled()) {
             clientConfig = LettucePoolingClientConfiguration.builder()
                     .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
+                    .clientResources(clientResources)
                     .useSsl()
+                    .build();
+        } else {
+            clientConfig = LettucePoolingClientConfiguration.builder()
+                    .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
+                    .clientResources(clientResources)
                     .build();
         }
 
