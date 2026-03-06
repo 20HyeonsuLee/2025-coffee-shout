@@ -94,9 +94,14 @@ public class RacingGameStreamProducer {
         // 라운드로빈으로 커넥션 분산
         // Math.abs: Integer.MIN_VALUE 오버플로 방지
         final int idx = Math.abs(counter.getAndIncrement() % asyncCommandsList.size());
+        final long startNanos = System.nanoTime();
         asyncCommandsList.get(idx)
                 .xadd(streamKey, xAddArgs, "payload", eventJson)
                 .whenComplete((messageId, throwable) -> {
+                    final long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+                    if (elapsedMs > 10) {
+                        log.warn("XADD slow: {}ms, conn={}", elapsedMs, idx);
+                    }
                     if (throwable != null) {
                         log.error("레이싱 게임 이벤트 발송 실패: streamKey={}", streamKey, throwable);
                     }
