@@ -40,7 +40,10 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisConnectionFactory redisConnectionFactory(final ClientResources clientResources) {
+    public RedisConnectionFactory redisConnectionFactory(
+            @org.springframework.beans.factory.annotation.Qualifier("lettuceClientResources")
+            final ClientResources clientResources
+    ) {
         final RedisStandaloneConfiguration redisConfig =
                 new RedisStandaloneConfiguration(redisProperties.host(), redisProperties.port());
 
