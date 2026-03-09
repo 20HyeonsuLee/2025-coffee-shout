@@ -1,17 +1,20 @@
 package coffeeshout.racinggame.infra.messaging;
 
+import coffeeshout.global.config.properties.RedisProperties;
 import coffeeshout.global.config.properties.RedisStreamProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.RedisClient;
+import io.lettuce.core.RedisURI;
 import io.lettuce.core.XAddArgs;
 import io.lettuce.core.api.StatefulRedisConnection;
 import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.codec.StringCodec;
+import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
+import io.lettuce.core.metrics.MicrometerOptions;
+import io.lettuce.core.resource.ClientResources;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import io.netty.handler.ssl.OpenSsl;
-import io.netty.handler.ssl.SslContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
@@ -21,7 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.connection.RedisStreamCommands;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -30,34 +32,41 @@ import org.springframework.stereotype.Component;
 @Component
 public class RacingGameStreamProducer {
 
-    private final LettuceConnectionFactory connectionFactory;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisStreamProperties redisStreamProperties;
+    private final RedisProperties redisProperties;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
     private final boolean asyncEnabled;
     private final int asyncConnectionCount;
+    private final int ioThreads;
     private final Timer xaddTimer;
 
-    // 단일 커넥션 → 여러 커넥션으로 분리
     private final List<StatefulRedisConnection<String, String>> connections = new ArrayList<>();
     private final List<RedisAsyncCommands<String, String>> asyncCommandsList = new ArrayList<>();
     private final AtomicInteger counter = new AtomicInteger(0);
 
+    private ClientResources xaddClientResources;
+    private RedisClient xaddClient;
+
     public RacingGameStreamProducer(
-            final LettuceConnectionFactory connectionFactory,
             final StringRedisTemplate stringRedisTemplate,
             final RedisStreamProperties redisStreamProperties,
+            final RedisProperties redisProperties,
             final ObjectMapper objectMapper,
             final MeterRegistry meterRegistry,
             @Value("${racing-game.stream.async:false}") final boolean asyncEnabled,
-            @Value("${racing-game.stream.async-connection-count:2}") final int asyncConnectionCount
+            @Value("${racing-game.stream.async-connection-count:2}") final int asyncConnectionCount,
+            @Value("${racing-game.stream.io-threads:2}") final int ioThreads
     ) {
-        this.connectionFactory = connectionFactory;
         this.stringRedisTemplate = stringRedisTemplate;
         this.redisStreamProperties = redisStreamProperties;
+        this.redisProperties = redisProperties;
         this.objectMapper = objectMapper;
+        this.meterRegistry = meterRegistry;
         this.asyncEnabled = asyncEnabled;
         this.asyncConnectionCount = asyncConnectionCount;
+        this.ioThreads = ioThreads;
         this.xaddTimer = Timer.builder("racing.xadd.latency")
                 .description("XADD async round-trip latency")
                 .publishPercentiles(0.5, 0.95, 0.99)
@@ -66,20 +75,36 @@ public class RacingGameStreamProducer {
 
     @PostConstruct
     public void init() {
-        log.info("SSL Provider: {}", SslContext.defaultServerProvider());
-        log.info("OpenSSL available: {}", OpenSsl.isAvailable());
-        log.info("OpenSSL cause: {}", OpenSsl.unavailabilityCause());
-
         if (asyncEnabled) {
-            final RedisClient nativeClient = (RedisClient) connectionFactory.getNativeClient();
+            final MicrometerOptions options = MicrometerOptions.builder()
+                    .enable()
+                    .histogram(true)
+                    .build();
+
+            xaddClientResources = ClientResources.builder()
+                    .ioThreadPoolSize(ioThreads)
+                    .computationThreadPoolSize(ioThreads)
+                    .commandLatencyRecorder(new MicrometerCommandLatencyRecorder(meterRegistry, options))
+                    .build();
+
+            final RedisURI.Builder uriBuilder = RedisURI.builder()
+                    .withHost(redisProperties.host())
+                    .withPort(redisProperties.port());
+
+            if (redisProperties.ssl().enabled()) {
+                uriBuilder.withSsl(true);
+            }
+
+            xaddClient = RedisClient.create(xaddClientResources, uriBuilder.build());
 
             for (int i = 0; i < asyncConnectionCount; i++) {
-                final StatefulRedisConnection<String, String> conn = nativeClient.connect(StringCodec.UTF8);
+                final StatefulRedisConnection<String, String> conn = xaddClient.connect(StringCodec.UTF8);
                 connections.add(conn);
                 asyncCommandsList.add(conn.async());
             }
 
-            log.info("RacingGameStreamProducer: async 모드 활성화 (커넥션 {}개)", connections.size());
+            log.info("RacingGameStreamProducer: async 모드 활성화 (격리된 EventLoopGroup io-threads={}, 커넥션 {}개)",
+                    ioThreads, connections.size());
         } else {
             log.info("RacingGameStreamProducer: blocking 모드 활성화");
         }
@@ -89,6 +114,12 @@ public class RacingGameStreamProducer {
     public void destroy() {
         for (final StatefulRedisConnection<String, String> conn : connections) {
             conn.closeAsync();
+        }
+        if (xaddClient != null) {
+            xaddClient.shutdown();
+        }
+        if (xaddClientResources != null) {
+            xaddClientResources.shutdown();
         }
     }
 
@@ -107,8 +138,6 @@ public class RacingGameStreamProducer {
                 .maxlen(redisStreamProperties.maxLength())
                 .approximateTrimming();
 
-        // 라운드로빈으로 커넥션 분산
-        // Math.abs: Integer.MIN_VALUE 오버플로 방지
         final int idx = Math.abs(counter.getAndIncrement() % asyncCommandsList.size());
         final long startNanos = System.nanoTime();
 

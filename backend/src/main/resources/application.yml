@@ -97,6 +97,8 @@ websocket:
 racing-game:
   stream:
     async: true
+    io-threads: 2
+    async-connection-count: 2
 
 loadtest:
   xadd:
