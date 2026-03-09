@@ -88,6 +88,7 @@ public class RacingGameStreamProducer {
 
     @PostConstruct
     public void init() {
+        log.info("OpenSSL available: {}", io.netty.handler.ssl.OpenSsl.isAvailable());
         if (asyncEnabled) {
             xaddEventLoopGroup = new NioEventLoopGroup(ioThreads);
 
