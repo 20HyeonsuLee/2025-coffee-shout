@@ -36,6 +36,9 @@ dependencies {
     implementation("org.flywaydb:flyway-mysql")
     implementation("com.mysql:mysql-connector-j")
 
+    implementation(platform("io.netty:netty-bom:4.1.122.Final"))
+    implementation("io.netty:netty-tcnative-boringssl-static")
+
     implementation("org.apache.commons:commons-pool2")
     // QueryDSL
     implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")

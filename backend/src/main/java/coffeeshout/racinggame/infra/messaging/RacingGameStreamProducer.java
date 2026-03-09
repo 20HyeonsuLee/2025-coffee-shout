@@ -10,6 +10,8 @@ import io.lettuce.core.api.async.RedisAsyncCommands;
 import io.lettuce.core.codec.StringCodec;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.netty.handler.ssl.OpenSsl;
+import io.netty.handler.ssl.SslContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
@@ -64,6 +66,10 @@ public class RacingGameStreamProducer {
 
     @PostConstruct
     public void init() {
+        log.info("SSL Provider: {}", SslContext.defaultServerProvider());
+        log.info("OpenSSL available: {}", OpenSsl.isAvailable());
+        log.info("OpenSSL cause: {}", OpenSsl.unavailabilityCause());
+
         if (asyncEnabled) {
             final RedisClient nativeClient = (RedisClient) connectionFactory.getNativeClient();
 
