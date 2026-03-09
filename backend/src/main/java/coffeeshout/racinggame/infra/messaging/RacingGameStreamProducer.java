@@ -207,7 +207,7 @@ public class RacingGameStreamProducer {
             for (final StatefulRedisConnection<String, String> conn : connections) {
                 conn.flushCommands();
             }
-        }, 1, 1, TimeUnit.MILLISECONDS);
+        }, 2, 2, TimeUnit.MILLISECONDS);
     }
 
     private void registerEventLoopMetrics() {
