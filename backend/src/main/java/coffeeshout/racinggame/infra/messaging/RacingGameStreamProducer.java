@@ -61,6 +61,7 @@ public class RacingGameStreamProducer {
     private ClientResources xaddClientResources;
     private RedisClient xaddClient;
     private ScheduledExecutorService metricsScheduler;
+    private ScheduledExecutorService flushScheduler;
 
     public RacingGameStreamProducer(
             final StringRedisTemplate stringRedisTemplate,
@@ -115,10 +116,12 @@ public class RacingGameStreamProducer {
 
             for (int i = 0; i < asyncConnectionCount; i++) {
                 final StatefulRedisConnection<String, String> conn = xaddClient.connect(StringCodec.UTF8);
+                conn.setAutoFlushCommands(false);
                 connections.add(conn);
                 asyncCommandsList.add(conn.async());
             }
 
+            startPeriodicFlush();
             registerEventLoopMetrics();
 
             log.info("RacingGameStreamProducer: async 모드 활성화 (격리된 EventLoopGroup io-threads={}, 커넥션 {}개)",
@@ -130,6 +133,9 @@ public class RacingGameStreamProducer {
 
     @PreDestroy
     public void destroy() {
+        if (flushScheduler != null) {
+            flushScheduler.shutdown();
+        }
         if (metricsScheduler != null) {
             metricsScheduler.shutdown();
         }
@@ -188,6 +194,20 @@ public class RacingGameStreamProducer {
         } catch (final JsonProcessingException e) {
             throw new IllegalArgumentException("레이싱 게임 이벤트 직렬화 실패", e);
         }
+    }
+
+    private void startPeriodicFlush() {
+        flushScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            final Thread thread = new Thread(runnable, "xadd-flush");
+            thread.setDaemon(true);
+            return thread;
+        });
+
+        flushScheduler.scheduleAtFixedRate(() -> {
+            for (final StatefulRedisConnection<String, String> conn : connections) {
+                conn.flushCommands();
+            }
+        }, 1, 1, TimeUnit.MILLISECONDS);
     }
 
     private void registerEventLoopMetrics() {
