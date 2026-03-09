@@ -38,6 +38,8 @@ dependencies {
 
     implementation(platform("io.netty:netty-bom:4.1.122.Final"))
     implementation("io.netty:netty-tcnative-boringssl-static")
+    implementation("io.netty:netty-tcnative-boringssl-static::linux-aarch_64")
+    implementation("io.netty:netty-tcnative-boringssl-static::osx-aarch_64")
 
     implementation("org.apache.commons:commons-pool2")
     // QueryDSL
