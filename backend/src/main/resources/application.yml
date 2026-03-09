@@ -94,6 +94,10 @@ websocket:
       version: "1.0.0"
       description: "실시간 웹소켓 통신 API 문서"
 
+racing-game:
+  stream:
+    async: true
+
 loadtest:
   xadd:
     io-threads: 4

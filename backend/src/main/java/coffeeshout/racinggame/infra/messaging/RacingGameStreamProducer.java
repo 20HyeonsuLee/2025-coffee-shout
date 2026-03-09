@@ -48,7 +48,7 @@ public class RacingGameStreamProducer {
             final ObjectMapper objectMapper,
             final MeterRegistry meterRegistry,
             @Value("${racing-game.stream.async:false}") final boolean asyncEnabled,
-            @Value("${racing-game.stream.async-connection-count:4}") final int asyncConnectionCount
+            @Value("${racing-game.stream.async-connection-count:2}") final int asyncConnectionCount
     ) {
         this.connectionFactory = connectionFactory;
         this.stringRedisTemplate = stringRedisTemplate;
