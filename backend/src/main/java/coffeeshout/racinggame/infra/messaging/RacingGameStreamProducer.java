@@ -13,17 +13,8 @@ import io.lettuce.core.codec.StringCodec;
 import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
 import io.lettuce.core.metrics.MicrometerOptions;
 import io.lettuce.core.resource.ClientResources;
-import io.lettuce.core.resource.EventLoopGroupProvider;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.concurrent.EventExecutor;
-import io.netty.util.concurrent.EventExecutorGroup;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GlobalEventExecutor;
-import io.netty.util.concurrent.SingleThreadEventExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
@@ -57,10 +48,8 @@ public class RacingGameStreamProducer {
     private final List<RedisAsyncCommands<String, String>> asyncCommandsList = new ArrayList<>();
     private final AtomicInteger counter = new AtomicInteger(0);
 
-    private EventLoopGroup xaddEventLoopGroup;
     private ClientResources xaddClientResources;
     private RedisClient xaddClient;
-    private ScheduledExecutorService metricsScheduler;
     private ScheduledExecutorService flushScheduler;
 
     public RacingGameStreamProducer(
@@ -91,15 +80,13 @@ public class RacingGameStreamProducer {
     public void init() {
         log.info("OpenSSL available: {}", io.netty.handler.ssl.OpenSsl.isAvailable());
         if (asyncEnabled) {
-            xaddEventLoopGroup = new NioEventLoopGroup(ioThreads);
-
             final MicrometerOptions options = MicrometerOptions.builder()
                     .enable()
                     .histogram(true)
                     .build();
 
             xaddClientResources = ClientResources.builder()
-                    .eventLoopGroupProvider(new FixedEventLoopGroupProvider(xaddEventLoopGroup, ioThreads))
+                    .ioThreadPoolSize(ioThreads)
                     .computationThreadPoolSize(ioThreads)
                     .commandLatencyRecorder(new MicrometerCommandLatencyRecorder(meterRegistry, options))
                     .build();
@@ -122,9 +109,8 @@ public class RacingGameStreamProducer {
             }
 
             startPeriodicFlush();
-            registerEventLoopMetrics();
 
-            log.info("RacingGameStreamProducer: async 모드 활성화 (격리된 EventLoopGroup io-threads={}, 커넥션 {}개)",
+            log.info("RacingGameStreamProducer: async 모드 활성화 (Lettuce 기본 EventLoop io-threads={}, 커넥션 {}개)",
                     ioThreads, connections.size());
         } else {
             log.info("RacingGameStreamProducer: blocking 모드 활성화");
@@ -135,9 +121,6 @@ public class RacingGameStreamProducer {
     public void destroy() {
         if (flushScheduler != null) {
             flushScheduler.shutdown();
-        }
-        if (metricsScheduler != null) {
-            metricsScheduler.shutdown();
         }
         for (final StatefulRedisConnection<String, String> conn : connections) {
             conn.closeAsync();
@@ -208,72 +191,5 @@ public class RacingGameStreamProducer {
                 conn.flushCommands();
             }
         }, 2, 2, TimeUnit.MILLISECONDS);
-    }
-
-    private void registerEventLoopMetrics() {
-        int idx = 0;
-        for (final EventExecutor executor : xaddEventLoopGroup) {
-            if (executor instanceof SingleThreadEventExecutor singleExecutor) {
-                final String threadIdx = String.valueOf(idx++);
-                Gauge.builder("racing.xadd.eventloop.pending_tasks", singleExecutor,
-                                SingleThreadEventExecutor::pendingTasks)
-                        .tag("thread", threadIdx)
-                        .register(meterRegistry);
-            }
-        }
-
-        final Timer scheduleDelayTimer = Timer.builder("racing.xadd.eventloop.schedule_delay")
-                .description("Event loop queue scheduling delay")
-                .publishPercentiles(0.5, 0.95, 0.99)
-                .register(meterRegistry);
-
-        metricsScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            final Thread thread = new Thread(runnable, "xadd-eventloop-metrics");
-            thread.setDaemon(true);
-            return thread;
-        });
-
-        metricsScheduler.scheduleAtFixedRate(() -> {
-            for (final EventExecutor executor : xaddEventLoopGroup) {
-                final long submitNanos = System.nanoTime();
-                executor.execute(() ->
-                        scheduleDelayTimer.record(System.nanoTime() - submitNanos, TimeUnit.NANOSECONDS)
-                );
-            }
-        }, 100, 100, TimeUnit.MILLISECONDS);
-    }
-
-    private static class FixedEventLoopGroupProvider implements EventLoopGroupProvider {
-
-        private final EventLoopGroup eventLoopGroup;
-        private final int threadPoolSize;
-
-        FixedEventLoopGroupProvider(final EventLoopGroup eventLoopGroup, final int threadPoolSize) {
-            this.eventLoopGroup = eventLoopGroup;
-            this.threadPoolSize = threadPoolSize;
-        }
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public <T extends EventLoopGroup> T allocate(final Class<T> type) {
-            return (T) eventLoopGroup;
-        }
-
-        @Override
-        public int threadPoolSize() {
-            return threadPoolSize;
-        }
-
-        @Override
-        public Future<Boolean> release(final EventExecutorGroup eventLoopGroup,
-                                       final long quietPeriod, final long timeout, final TimeUnit unit) {
-            return GlobalEventExecutor.INSTANCE.newSucceededFuture(true);
-        }
-
-        @Override
-        public Future<Boolean> shutdown(final long quietPeriod, final long timeout, final TimeUnit unit) {
-            eventLoopGroup.shutdownGracefully(quietPeriod, timeout, unit);
-            return GlobalEventExecutor.INSTANCE.newSucceededFuture(true);
-        }
     }
 }
