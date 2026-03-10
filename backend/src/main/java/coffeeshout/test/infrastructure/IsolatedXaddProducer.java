@@ -11,6 +11,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,8 @@ public class IsolatedXaddProducer {
     private final List<StatefulRedisConnection<String, String>> connections = new ArrayList<>();
     private final List<RedisAsyncCommands<String, String>> asyncCommandsList = new ArrayList<>();
     private final AtomicInteger counter = new AtomicInteger(0);
+
+    private ScheduledExecutorService flushScheduler;
 
     public IsolatedXaddProducer(
             @Qualifier("loadtestRedisClient") final RedisClient redisClient,
@@ -53,15 +57,33 @@ public class IsolatedXaddProducer {
     public void init() {
         for (int i = 0; i < connectionCount; i++) {
             final StatefulRedisConnection<String, String> conn = redisClient.connect(StringCodec.UTF8);
+            conn.setAutoFlushCommands(false);
             connections.add(conn);
             asyncCommandsList.add(conn.async());
         }
-        log.info("IsolatedXaddProducer: 커넥션 {}개 초기화 완료", connections.size());
+
+        flushScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            final Thread thread = new Thread(runnable, "loadtest-flush");
+            thread.setDaemon(true);
+            return thread;
+        });
+
+        flushScheduler.scheduleAtFixedRate(() -> {
+            for (final StatefulRedisConnection<String, String> conn : connections) {
+                conn.flushCommands();
+            }
+        }, 2, 2, TimeUnit.MILLISECONDS);
+
+        log.info("IsolatedXaddProducer: 커넥션 {}개, autoFlush=false, 2ms 주기 flush", connections.size());
     }
 
     @PreDestroy
     public void destroy() {
+        if (flushScheduler != null) {
+            flushScheduler.shutdown();
+        }
         for (final StatefulRedisConnection<String, String> conn : connections) {
+            conn.flushCommands();
             conn.closeAsync();
         }
     }
