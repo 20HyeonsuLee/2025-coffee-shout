@@ -51,11 +51,11 @@ public class RacingGameStreamConsumer implements StreamListener<String, MapRecor
 
     @PostConstruct
     public void registerListener() {
-        container.receiveAutoAck(
-                Consumer.from(CONSUMER_GROUP, CONSUMER_NAME),
-                StreamOffset.create(redisStreamProperties.racingGameKey(), ReadOffset.lastConsumed()),
-                this
-        );
+//        container.receiveAutoAck(
+//                Consumer.from(CONSUMER_GROUP, CONSUMER_NAME),
+//                StreamOffset.create(redisStreamProperties.racingGameKey(), ReadOffset.lastConsumed()),
+//                this
+//        );
         log.info("레이싱 게임 스트림 리스너 등록 완료 (consumer group={}): {}",
                 CONSUMER_GROUP, redisStreamProperties.racingGameKey());
     }
