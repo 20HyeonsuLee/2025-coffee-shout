@@ -19,8 +19,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
@@ -50,7 +48,6 @@ public class RacingGameStreamProducer {
 
     private ClientResources xaddClientResources;
     private RedisClient xaddClient;
-    private ScheduledExecutorService flushScheduler;
 
     public RacingGameStreamProducer(
             final StringRedisTemplate stringRedisTemplate,
@@ -103,12 +100,9 @@ public class RacingGameStreamProducer {
 
             for (int i = 0; i < asyncConnectionCount; i++) {
                 final StatefulRedisConnection<String, String> conn = xaddClient.connect(StringCodec.UTF8);
-                conn.setAutoFlushCommands(false);
                 connections.add(conn);
                 asyncCommandsList.add(conn.async());
             }
-
-            startPeriodicFlush();
 
             log.info("RacingGameStreamProducer: async 모드 활성화 (Lettuce 기본 EventLoop io-threads={}, 커넥션 {}개)",
                     ioThreads, connections.size());
@@ -119,9 +113,6 @@ public class RacingGameStreamProducer {
 
     @PreDestroy
     public void destroy() {
-        if (flushScheduler != null) {
-            flushScheduler.shutdown();
-        }
         for (final StatefulRedisConnection<String, String> conn : connections) {
             conn.closeAsync();
         }
@@ -179,17 +170,4 @@ public class RacingGameStreamProducer {
         }
     }
 
-    private void startPeriodicFlush() {
-        flushScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            final Thread thread = new Thread(runnable, "xadd-flush");
-            thread.setDaemon(true);
-            return thread;
-        });
-
-        flushScheduler.scheduleAtFixedRate(() -> {
-            for (final StatefulRedisConnection<String, String> conn : connections) {
-                conn.flushCommands();
-            }
-        }, 2, 2, TimeUnit.MILLISECONDS);
-    }
 }
