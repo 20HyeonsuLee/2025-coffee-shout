@@ -143,7 +143,7 @@ public class RacingGameStreamProducer {
         final long startNanos = System.nanoTime();
 
         asyncCommandsList.get(idx)
-                .xadd(streamKey, xAddArgs, "payload", eventJson)
+                .xadd("loadtest:xadd", xAddArgs, "payload", eventJson)
                 .whenComplete((messageId, throwable) -> {
                     xaddTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
                     if (throwable != null) {
