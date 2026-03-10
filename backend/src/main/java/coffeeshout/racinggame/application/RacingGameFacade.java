@@ -15,6 +15,6 @@ public class RacingGameFacade {
 
     public void tap(String joinCode, String hostName, int tapCount) {
         final TapCommandEvent event = TapCommandEvent.create(joinCode, hostName, tapCount);
-//        racingGameStreamProducer.publishEvent(event);
+        racingGameStreamProducer.publishEvent(event);
     }
 }
