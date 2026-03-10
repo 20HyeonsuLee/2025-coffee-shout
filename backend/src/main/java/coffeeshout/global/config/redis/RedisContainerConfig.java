@@ -48,9 +48,9 @@ public class RedisContainerConfig {
             RedisConnectionFactory redisConnectionFactory) {
         final StreamMessageListenerContainerOptions<String, MapRecord<String, String, String>> options =
                 StreamMessageListenerContainerOptions.builder()
-                        .batchSize(10)
+                        .batchSize(100)
                         .executor(racingGameThreadExecutor())
-                        .pollTimeout(Duration.ofSeconds(2))
+                        .pollTimeout(Duration.ofMillis(50))
                         .build();
 
         final StreamMessageListenerContainer<String, MapRecord<String, String, String>> container =

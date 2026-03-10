@@ -13,7 +13,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
@@ -22,6 +24,9 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class RacingGameStreamConsumer implements StreamListener<String, MapRecord<String, String, String>> {
+
+    private static final String CONSUMER_GROUP = "racing-game-group";
+    private static final String CONSUMER_NAME = "consumer-1";
 
     private final Map<RacingGameEventType, RacingGameEventHandler<?>> handlers;
     private final StreamMessageListenerContainer<String, MapRecord<String, String, String>> container;
@@ -46,25 +51,29 @@ public class RacingGameStreamConsumer implements StreamListener<String, MapRecor
 
     @PostConstruct
     public void registerListener() {
-        container.receive(
-                StreamOffset.fromStart(redisStreamProperties.racingGameKey()),
+        container.receiveAutoAck(
+                Consumer.from(CONSUMER_GROUP, CONSUMER_NAME),
+                StreamOffset.create(redisStreamProperties.racingGameKey(), ReadOffset.lastConsumed()),
                 this
         );
-        log.info("레이싱 게임 스트림 리스너 등록 완료: {}", redisStreamProperties.racingGameKey());
+        log.info("레이싱 게임 스트림 리스너 등록 완료 (consumer group={}): {}",
+                CONSUMER_GROUP, redisStreamProperties.racingGameKey());
     }
 
     @Override
     public void onMessage(final MapRecord<String, String, String> message) {
         try {
             final String body = message.getValue().get("payload");
-            final RacingGameEventType eventType = extractEventType(body);
+            final JsonNode jsonNode = objectMapper.readTree(body);
+            final RacingGameEventType eventType = RacingGameEventType.valueOf(
+                    jsonNode.get("eventType").asText());
 
             if (!handlers.containsKey(eventType)) {
                 log.warn("처리할 수 없는 레이싱 게임 이벤트 타입: {}", eventType);
                 return;
             }
 
-            final Object event = deserializeEvent(body, eventType);
+            final Object event = deserializeEvent(jsonNode, eventType);
             @SuppressWarnings("unchecked")
             final RacingGameEventHandler<Object> handler =
                     (RacingGameEventHandler<Object>) handlers.get(eventType);
@@ -75,17 +84,11 @@ public class RacingGameStreamConsumer implements StreamListener<String, MapRecor
         }
     }
 
-    private RacingGameEventType extractEventType(final String body) throws Exception {
-        final JsonNode jsonNode = objectMapper.readTree(body);
-        final String eventTypeStr = jsonNode.get("eventType").asText();
-        return RacingGameEventType.valueOf(eventTypeStr);
-    }
-
-    private Object deserializeEvent(final String body, final RacingGameEventType eventType)
+    private Object deserializeEvent(final JsonNode jsonNode, final RacingGameEventType eventType)
             throws Exception {
         return switch (eventType) {
-            case START_RACING_GAME_COMMAND -> objectMapper.readValue(body, StartRacingGameCommandEvent.class);
-            case TAP_COMMAND -> objectMapper.readValue(body, TapCommandEvent.class);
+            case START_RACING_GAME_COMMAND -> objectMapper.treeToValue(jsonNode, StartRacingGameCommandEvent.class);
+            case TAP_COMMAND -> objectMapper.treeToValue(jsonNode, TapCommandEvent.class);
         };
     }
 }
