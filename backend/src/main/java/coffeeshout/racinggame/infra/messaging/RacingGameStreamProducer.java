@@ -134,6 +134,7 @@ public class RacingGameStreamProducer {
 
     private <T> void publishAsync(final T event) {
         final String eventJson = serialize(event);
+        final String payload = "{\"seq\":" + ",\"ts\":" + System.currentTimeMillis() + "}";
         final String streamKey = redisStreamProperties.racingGameKey();
         final XAddArgs xAddArgs = new XAddArgs()
                 .maxlen(redisStreamProperties.maxLength())
@@ -143,7 +144,7 @@ public class RacingGameStreamProducer {
         final long startNanos = System.nanoTime();
 
         asyncCommandsList.get(idx)
-                .xadd("loadtest:xadd", xAddArgs, "payload", eventJson)
+                .xadd("loadtest:xadd", xAddArgs, "payload", payload)
                 .whenComplete((messageId, throwable) -> {
                     xaddTimer.record(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);
                     if (throwable != null) {
