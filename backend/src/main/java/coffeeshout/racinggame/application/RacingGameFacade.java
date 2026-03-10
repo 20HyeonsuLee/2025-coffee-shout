@@ -1,7 +1,8 @@
 package coffeeshout.racinggame.application;
 
-import coffeeshout.racinggame.domain.event.TapCommandEvent;
 import coffeeshout.racinggame.infra.messaging.RacingGameStreamProducer;
+import coffeeshout.test.infrastructure.IsolatedXaddProducer;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,9 +13,10 @@ import org.springframework.stereotype.Service;
 public class RacingGameFacade {
 
     private final RacingGameStreamProducer racingGameStreamProducer;
+    private final IsolatedXaddProducer isolatedXaddProducer;
+    private final AtomicLong sequence = new AtomicLong(0);
 
     public void tap(String joinCode, String hostName, int tapCount) {
-        final TapCommandEvent event = TapCommandEvent.create(joinCode, hostName, tapCount);
-//        racingGameStreamProducer.publishEvent(event);
+        isolatedXaddProducer.xaddAsync(sequence.getAndIncrement());
     }
 }
