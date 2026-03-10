@@ -93,9 +93,9 @@ public class RacingGameService implements MiniGameService {
     }
 
     private ScheduledFuture<?> scheduleAutoMoveTask(RacingGame racingGame, String joinCode) {
-        return null;
-//        return taskScheduler.scheduleAtFixedRate(() -> executeAutoMove(racingGame, joinCode),
-//                Duration.ofMillis(RacingGame.MOVE_INTERVAL_MILLIS));
+//        return null;
+        return taskScheduler.scheduleAtFixedRate(() -> executeAutoMove(racingGame, joinCode),
+                Duration.ofMillis(RacingGame.MOVE_INTERVAL_MILLIS));
     }
 
     private void executeAutoMove(RacingGame racingGame, String joinCode) {
