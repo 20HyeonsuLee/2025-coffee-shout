@@ -1,0 +1,888 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "WebSocket Overview",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 500 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "websocket_connections_current{job=\"spring-boot-app\"}", "refId": "A" }],
+      "title": "WebSocket Connections",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "websocket_messages_inbound_total{job=\"spring-boot-app\"}", "refId": "A" }],
+      "title": "Inbound Total",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "websocket_messages_outbound_total{job=\"spring-boot-app\"}", "refId": "A" }],
+      "title": "Outbound Total",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.8 }] },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "system_cpu_usage{job=\"spring-boot-app\"}", "refId": "A" }],
+      "title": "System CPU",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.5 }] },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "process_cpu_usage{job=\"spring-boot-app\"}", "refId": "A" }],
+      "title": "Process CPU",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "expr": "jvm_threads_live_threads{job=\"spring-boot-app\"}", "refId": "A" }],
+      "title": "Live Threads",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "WebSocket Connections & Messages",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 10,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "websocket_connections_current{job=\"spring-boot-app\"}", "legendFormat": "Active Connections", "refId": "A" }
+      ],
+      "title": "WebSocket Active Connections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 11,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "increase(websocket_messages_inbound_total{job=\"spring-boot-app\"}[1m])", "legendFormat": "Inbound (1m)", "refId": "A" },
+        { "expr": "increase(websocket_messages_outbound_total{job=\"spring-boot-app\"}[1m])", "legendFormat": "Outbound (1m)", "refId": "B" }
+      ],
+      "title": "WebSocket Messages per Minute",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "WebSocket Latency",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
+      "id": 20,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "websocket_message_inbound_time_seconds{job=\"spring-boot-app\",quantile=\"0.95\"}", "legendFormat": "p95", "refId": "A" },
+        { "expr": "websocket_message_inbound_time_seconds{job=\"spring-boot-app\",quantile=\"0.99\"}", "legendFormat": "p99", "refId": "B" },
+        { "expr": "rate(websocket_message_inbound_time_seconds_sum{job=\"spring-boot-app\"}[1m]) / rate(websocket_message_inbound_time_seconds_count{job=\"spring-boot-app\"}[1m])", "legendFormat": "avg", "refId": "C" },
+        { "expr": "websocket_message_inbound_time_seconds_max{job=\"spring-boot-app\"}", "legendFormat": "max", "refId": "D" }
+      ],
+      "title": "Inbound Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 15 },
+      "id": 21,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "websocket_message_outbound_time_seconds{job=\"spring-boot-app\",quantile=\"0.95\"}", "legendFormat": "p95", "refId": "A" },
+        { "expr": "websocket_message_outbound_time_seconds{job=\"spring-boot-app\",quantile=\"0.99\"}", "legendFormat": "p99", "refId": "B" },
+        { "expr": "rate(websocket_message_outbound_time_seconds_sum{job=\"spring-boot-app\"}[1m]) / rate(websocket_message_outbound_time_seconds_count{job=\"spring-boot-app\"}[1m])", "legendFormat": "avg", "refId": "C" },
+        { "expr": "websocket_message_outbound_time_seconds_max{job=\"spring-boot-app\"}", "legendFormat": "max", "refId": "D" }
+      ],
+      "title": "Outbound Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
+      "id": 22,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "websocket_message_business_logic_time_seconds{job=\"spring-boot-app\",quantile=\"0.95\"}", "legendFormat": "Business Logic p95", "refId": "A" },
+        { "expr": "websocket_message_business_logic_time_seconds{job=\"spring-boot-app\",quantile=\"0.99\"}", "legendFormat": "Business Logic p99", "refId": "B" },
+        { "expr": "websocket_connection_establishment_time_seconds{job=\"spring-boot-app\",quantile=\"0.95\"}", "legendFormat": "Conn Setup p95", "refId": "C" },
+        { "expr": "websocket_connection_establishment_time_seconds{job=\"spring-boot-app\",quantile=\"0.99\"}", "legendFormat": "Conn Setup p99", "refId": "D" }
+      ],
+      "title": "Business Logic & Connection Setup Latency",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 107,
+      "title": "Tomcat",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 70,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "tomcat_threads_current_threads{job=\"spring-boot-app\"}", "legendFormat": "Current Threads", "refId": "A" },
+        { "expr": "tomcat_threads_busy_threads{job=\"spring-boot-app\"}", "legendFormat": "Busy Threads", "refId": "B" },
+        { "expr": "tomcat_threads_config_max_threads{job=\"spring-boot-app\"}", "legendFormat": "Max Threads (config)", "refId": "C" }
+      ],
+      "title": "Tomcat Threads",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 71,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "tomcat_connections_current_connections{job=\"spring-boot-app\"}", "legendFormat": "Current Connections", "refId": "A" },
+        { "expr": "tomcat_connections_config_max_connections{job=\"spring-boot-app\"}", "legendFormat": "Max Connections (config)", "refId": "B" },
+        { "expr": "http_concurrent_requests{job=\"spring-boot-app\"}", "legendFormat": "Concurrent HTTP Requests", "refId": "C" }
+      ],
+      "title": "Tomcat Connections & HTTP Requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "id": 72,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "tomcat_queue_pending{job=\"spring-boot-app\"}", "legendFormat": "Queue Pending", "refId": "A" },
+        { "expr": "tomcat_queue_remaining_capacity{job=\"spring-boot-app\"}", "legendFormat": "Queue Remaining Capacity", "refId": "B" }
+      ],
+      "title": "Tomcat Task Queue",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 103,
+      "title": "Thread Pools & Virtual Threads",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 30,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "websocket_inbound_executor_active{job=\"spring-boot-app\"}", "legendFormat": "Inbound Active (VThread)", "refId": "A" },
+        { "expr": "websocket_inbound_executor{job=\"spring-boot-app\"}", "legendFormat": "Inbound Total Created (VThread)", "refId": "B" },
+        { "expr": "executor_active_threads{job=\"spring-boot-app\",name=\"clientOutboundChannelExecutor\"}", "legendFormat": "Outbound Active", "refId": "C" },
+        { "expr": "executor_pool_size_threads{job=\"spring-boot-app\",name=\"clientOutboundChannelExecutor\"}", "legendFormat": "Outbound Pool Size", "refId": "D" }
+      ],
+      "title": "Inbound (VThread) & Outbound Executor",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 31,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "executor_pool_size_threads{job=\"spring-boot-app\",name=\"brokerChannelExecutor\"}", "legendFormat": "Broker Pool Size", "refId": "A" },
+        { "expr": "executor_active_threads{job=\"spring-boot-app\",name=\"brokerChannelExecutor\"}", "legendFormat": "Broker Active", "refId": "B" },
+        { "expr": "executor_queued_tasks{job=\"spring-boot-app\",name=\"brokerChannelExecutor\"}", "legendFormat": "Broker Queue", "refId": "C" },
+        { "expr": "executor_queued_tasks{job=\"spring-boot-app\",name=\"clientOutboundChannelExecutor\"}", "legendFormat": "Outbound Queue", "refId": "D" }
+      ],
+      "title": "Broker & Outbound Thread Pool Queue",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "id": 32,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "executor_pool_size_threads{job=\"spring-boot-app\"}", "legendFormat": "{{name}} size", "refId": "A" },
+        { "expr": "executor_active_threads{job=\"spring-boot-app\"}", "legendFormat": "{{name}} active", "refId": "B" }
+      ],
+      "title": "All Executor Pools (Size vs Active)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "id": 33,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "executor_queued_tasks{job=\"spring-boot-app\"}", "legendFormat": "{{name}} queued", "refId": "A" },
+        { "expr": "executor_queue_remaining_tasks{job=\"spring-boot-app\"}", "legendFormat": "{{name}} remaining", "refId": "B" }
+      ],
+      "title": "All Executor Queue (Queued vs Remaining)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 104,
+      "title": "JVM Threads",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "id": 40,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "jvm_threads_live_threads{job=\"spring-boot-app\"}", "legendFormat": "Live", "refId": "A" },
+        { "expr": "jvm_threads_daemon_threads{job=\"spring-boot-app\"}", "legendFormat": "Daemon", "refId": "B" },
+        { "expr": "jvm_threads_peak_threads{job=\"spring-boot-app\"}", "legendFormat": "Peak", "refId": "C" }
+      ],
+      "title": "JVM Threads (Live / Daemon / Peak)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 30, "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false, "stacking": { "mode": "normal" } },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "id": 41,
+      "options": {
+        "legend": { "calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "jvm_threads_states_threads{job=\"spring-boot-app\"}", "legendFormat": "{{state}}", "refId": "A" }
+      ],
+      "title": "JVM Thread States (Stacked)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "id": 105,
+      "title": "CPU & Context Switching",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 50 },
+      "id": 50,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "system_cpu_usage{job=\"spring-boot-app\"}", "legendFormat": "System CPU", "refId": "A" },
+        { "expr": "process_cpu_usage{job=\"spring-boot-app\"}", "legendFormat": "Process CPU", "refId": "B" },
+        { "expr": "system_load_average_1m{job=\"spring-boot-app\"} / system_cpu_count{job=\"spring-boot-app\"}", "legendFormat": "Load Avg / CPU Count", "refId": "C" }
+      ],
+      "title": "CPU Usage",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 50 },
+      "id": 51,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(node_context_switches_total{job=\"node_exporter\"}[1m])", "legendFormat": "Context Switches/sec", "refId": "A" }
+      ],
+      "title": "Context Switches (node_exporter)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 58 },
+      "id": 106,
+      "title": "JVM Memory & GC",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 59 },
+      "id": 60,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{job=\"spring-boot-app\",area=\"heap\"}", "legendFormat": "Heap {{id}}", "refId": "A" },
+        { "expr": "jvm_memory_max_bytes{job=\"spring-boot-app\",area=\"heap\"}", "legendFormat": "Max {{id}}", "refId": "B" }
+      ],
+      "title": "JVM Heap Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 59 },
+      "id": 61,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(jvm_gc_pause_seconds_sum{job=\"spring-boot-app\"}[1m])", "legendFormat": "GC Pause {{action}} {{cause}}", "refId": "A" },
+        { "expr": "jvm_gc_pause_seconds_max{job=\"spring-boot-app\"}", "legendFormat": "GC Pause Max {{action}}", "refId": "B" }
+      ],
+      "title": "GC Pause Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 67 },
+      "id": 108,
+      "title": "Lettuce EventLoop (Redis I/O)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 68 },
+      "id": 80,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(lettuce_command_firstresponse_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command))", "legendFormat": "First Response p95 ({{command}})", "refId": "A" },
+        { "expr": "histogram_quantile(0.99, sum(rate(lettuce_command_firstresponse_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command))", "legendFormat": "First Response p99 ({{command}})", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command))", "legendFormat": "Completion p95 ({{command}})", "refId": "C" },
+        { "expr": "histogram_quantile(0.99, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command))", "legendFormat": "Completion p99 ({{command}})", "refId": "D" }
+      ],
+      "title": "Lettuce Command Latency (First Response vs Completion)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 68 },
+      "id": 81,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command)) - histogram_quantile(0.95, sum(rate(lettuce_command_firstresponse_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command))", "legendFormat": "EventLoop Overhead p95 ({{command}})", "refId": "A" },
+        { "expr": "histogram_quantile(0.99, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command)) - histogram_quantile(0.99, sum(rate(lettuce_command_firstresponse_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le, command))", "legendFormat": "EventLoop Overhead p99 ({{command}})", "refId": "B" }
+      ],
+      "title": "EventLoop Processing Overhead (Completion - First Response)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 76 },
+      "id": 82,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "racing_xadd_latency_seconds{job=\"spring-boot-app\", quantile=\"0.5\"}", "legendFormat": "App XADD p50", "refId": "A" },
+        { "expr": "racing_xadd_latency_seconds{job=\"spring-boot-app\", quantile=\"0.95\"}", "legendFormat": "App XADD p95", "refId": "B" },
+        { "expr": "racing_xadd_latency_seconds{job=\"spring-boot-app\", quantile=\"0.99\"}", "legendFormat": "App XADD p99", "refId": "C" },
+        { "expr": "histogram_quantile(0.5, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\", command=\"XADD\"}[1m])) by (le))", "legendFormat": "Lettuce XADD p50", "refId": "D" },
+        { "expr": "histogram_quantile(0.99, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\", command=\"XADD\"}[1m])) by (le))", "legendFormat": "Lettuce XADD p99", "refId": "E" }
+      ],
+      "title": "Racing XADD Latency: App Timer vs Lettuce Metric",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 76 },
+      "id": 83,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(racing_xadd_latency_seconds_count{job=\"spring-boot-app\"}[1m])", "legendFormat": "XADD Throughput (ops/s)", "refId": "A" }
+      ],
+      "title": "Racing XADD Throughput",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 84 },
+      "id": 84,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "racing_xadd_eventloop_schedule_delay_seconds{job=\"spring-boot-app\", quantile=\"0.5\"}", "legendFormat": "Schedule Delay p50", "refId": "A" },
+        { "expr": "racing_xadd_eventloop_schedule_delay_seconds{job=\"spring-boot-app\", quantile=\"0.95\"}", "legendFormat": "Schedule Delay p95", "refId": "B" },
+        { "expr": "racing_xadd_eventloop_schedule_delay_seconds{job=\"spring-boot-app\", quantile=\"0.99\"}", "legendFormat": "Schedule Delay p99", "refId": "C" }
+      ],
+      "title": "XADD EventLoop Scheduling Delay",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 84 },
+      "id": 85,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "racing_xadd_eventloop_pending_tasks{job=\"spring-boot-app\", thread=\"0\"}", "legendFormat": "Thread-0 Pending", "refId": "A" },
+        { "expr": "racing_xadd_eventloop_pending_tasks{job=\"spring-boot-app\", thread=\"1\"}", "legendFormat": "Thread-1 Pending", "refId": "B" },
+        { "expr": "racing_xadd_eventloop_pending_tasks{job=\"spring-boot-app\", thread=\"2\"}", "legendFormat": "Thread-2 Pending", "refId": "C" },
+        { "expr": "racing_xadd_eventloop_pending_tasks{job=\"spring-boot-app\", thread=\"3\"}", "legendFormat": "Thread-3 Pending", "refId": "D" }
+      ],
+      "title": "XADD EventLoop Queue Depth (Pending Tasks)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 92 },
+      "id": 109,
+      "title": "Network",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 93 },
+      "id": 90,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(node_network_receive_bytes_total{job=\"node_exporter\", device!~\"lo|veth.*|docker.*|br-.*\"}[1m])", "legendFormat": "RX {{device}}", "refId": "A" },
+        { "expr": "rate(node_network_transmit_bytes_total{job=\"node_exporter\", device!~\"lo|veth.*|docker.*|br-.*\"}[1m])", "legendFormat": "TX {{device}}", "refId": "B" }
+      ],
+      "title": "Network Throughput (Bytes/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 93 },
+      "id": 91,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "node_netstat_Tcp_CurrEstab{job=\"node_exporter\"}", "legendFormat": "Established", "refId": "A" },
+        { "expr": "node_sockstat_TCP_tw{job=\"node_exporter\"}", "legendFormat": "TIME_WAIT", "refId": "B" },
+        { "expr": "node_sockstat_TCP_alloc{job=\"node_exporter\"}", "legendFormat": "Allocated", "refId": "C" }
+      ],
+      "title": "TCP Connections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 101 },
+      "id": 92,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(node_netstat_Tcp_RetransSegs{job=\"node_exporter\"}[1m])", "legendFormat": "TCP Retransmits/s", "refId": "A" },
+        { "expr": "rate(node_network_receive_errs_total{job=\"node_exporter\", device!~\"lo|veth.*\"}[1m])", "legendFormat": "RX Errors/s {{device}}", "refId": "B" },
+        { "expr": "rate(node_network_transmit_errs_total{job=\"node_exporter\", device!~\"lo|veth.*\"}[1m])", "legendFormat": "TX Errors/s {{device}}", "refId": "C" },
+        { "expr": "rate(node_network_receive_drop_total{job=\"node_exporter\", device!~\"lo|veth.*\"}[1m])", "legendFormat": "RX Drops/s {{device}}", "refId": "D" },
+        { "expr": "rate(node_network_transmit_drop_total{job=\"node_exporter\", device!~\"lo|veth.*\"}[1m])", "legendFormat": "TX Drops/s {{device}}", "refId": "E" }
+      ],
+      "title": "TCP Retransmits & Network Errors",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 101 },
+      "id": 93,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot-app\"}[1m]))", "legendFormat": "Total Request Rate", "refId": "A" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot-app\", status=~\"5..\"}[1m]))", "legendFormat": "5xx Error Rate", "refId": "B" },
+        { "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring-boot-app\", status=~\"4..\"}[1m]))", "legendFormat": "4xx Error Rate", "refId": "C" }
+      ],
+      "title": "HTTP Request & Error Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 109 },
+      "id": 94,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (le))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "title": "HTTP Response Time (p50 / p95 / p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 109 },
+      "id": 95,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(node_network_receive_bytes_total{job=\"node_exporter\", device!~\"lo|veth.*|docker.*|br-.*\"}[1m]) * 8", "legendFormat": "RX bps {{device}}", "refId": "A" },
+        { "expr": "rate(node_network_transmit_bytes_total{job=\"node_exporter\", device!~\"lo|veth.*|docker.*|br-.*\"}[1m]) * 8", "legendFormat": "TX bps {{device}}", "refId": "B" }
+      ],
+      "title": "Network Bandwidth (bits/s)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "pps"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 117 },
+      "id": 96,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(node_network_receive_packets_total{job=\"node_exporter\", device!~\"lo|veth.*|docker.*|br-.*\"}[1m])", "legendFormat": "RX pps {{device}}", "refId": "A" },
+        { "expr": "rate(node_network_transmit_packets_total{job=\"node_exporter\", device!~\"lo|veth.*|docker.*|br-.*\"}[1m])", "legendFormat": "TX pps {{device}}", "refId": "B" }
+      ],
+      "title": "Network PPS (Packets/s)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["coffee-shout", "websocket", "jvm"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "Asia/Seoul",
+  "title": "Coffee Shout - Application Metrics",
+  "uid": "coffee-shout-app",
+  "version": 1
+}
