@@ -1,11 +1,11 @@
 package coffeeshout.minigame.ui.command.handler;
 
 import coffeeshout.minigame.event.StartMiniGameCommandEvent;
-import coffeeshout.minigame.infra.messaging.MiniGameEventPublisher;
 import coffeeshout.minigame.ui.command.MiniGameCommandHandler;
 import coffeeshout.minigame.ui.request.command.StartMiniGameCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StartMiniGameCommandHandler implements MiniGameCommandHandler<StartMiniGameCommand> {
 
-    private final MiniGameEventPublisher miniGameEventPublisher;
+    private final ApplicationEventPublisher miniGameEventPublisher;
 
     @Override
     public void handle(String joinCode, StartMiniGameCommand command) {

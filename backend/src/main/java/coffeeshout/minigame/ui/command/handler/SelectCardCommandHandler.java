@@ -1,10 +1,12 @@
 package coffeeshout.minigame.ui.command.handler;
 
-import coffeeshout.cardgame.domain.event.SelectCardCommandEvent;
-import coffeeshout.cardgame.infra.messaging.CardSelectStreamProducer;
-import coffeeshout.minigame.infra.messaging.MiniGameEventPublisher;
+import coffeeshout.cardgame.domain.service.CardGameCommandService;
+import coffeeshout.global.exception.custom.InvalidArgumentException;
+import coffeeshout.global.exception.custom.InvalidStateException;
 import coffeeshout.minigame.ui.command.MiniGameCommandHandler;
 import coffeeshout.minigame.ui.request.command.SelectCardCommand;
+import coffeeshout.room.domain.JoinCode;
+import coffeeshout.room.domain.player.PlayerName;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -14,16 +16,25 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class SelectCardCommandHandler implements MiniGameCommandHandler<SelectCardCommand> {
 
-    private final MiniGameEventPublisher eventPublisher;
-    private final CardSelectStreamProducer cardSelectStreamProducer;
+    private final CardGameCommandService cardGameCommandService;
 
     @Override
-    public void handle(String joinCode, SelectCardCommand command) {
-        final SelectCardCommandEvent event = new SelectCardCommandEvent(joinCode, command.playerName(), command.cardIndex());
-//        eventPublisher.publishEvent(event);
-        cardSelectStreamProducer.broadcastCardSelect(event);
-        log.info("카드 선택 이벤트 발행: joinCode={}, playerName={}, cardIndex={}, eventId={}",
-                joinCode, command.playerName(), command.cardIndex(), event.eventId());
+    public void handle(final String joinCode, final SelectCardCommand command) {
+        try {
+            cardGameCommandService.selectCard(
+                    new JoinCode(joinCode),
+                    new PlayerName(command.playerName()),
+                    command.cardIndex()
+            );
+            log.info("카드 선택 처리 성공: joinCode={}, playerName={}, cardIndex={}",
+                    joinCode, command.playerName(), command.cardIndex());
+        } catch (InvalidArgumentException | InvalidStateException e) {
+            log.warn("카드 선택 처리 중 오류 발생: joinCode={}, playerName={}, cardIndex={}",
+                    joinCode, command.playerName(), command.cardIndex(), e);
+        } catch (Exception e) {
+            log.error("카드 선택 처리 실패: joinCode={}, playerName={}, cardIndex={}",
+                    joinCode, command.playerName(), command.cardIndex(), e);
+        }
     }
 
     @Override

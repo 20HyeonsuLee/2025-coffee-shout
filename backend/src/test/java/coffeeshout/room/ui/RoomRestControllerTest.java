@@ -1,11 +1,9 @@
 package coffeeshout.room.ui;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import coffeeshout.cardgame.domain.CardGame;
@@ -147,14 +145,10 @@ class RoomRestControllerTest {
             SelectedMenuRequest guestMenuRequest = new SelectedMenuRequest(2L, "라떼", MenuTemperature.ICE);
             RoomEnterRequest enterRequest = new RoomEnterRequest("게스트", guestMenuRequest);
 
-            // when & then - 비동기 테스트
-            var result = mockMvc.perform(post("/rooms/{joinCode}", joinCode)
+            // when & then
+            String enterResponse = mockMvc.perform(post("/rooms/{joinCode}", joinCode)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(enterRequest)))
-                    .andExpect(request().asyncStarted())
-                    .andReturn();
-
-            String enterResponse = mockMvc.perform(asyncDispatch(result))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.joinCode").value(joinCode))
                     .andReturn()
@@ -177,14 +171,10 @@ class RoomRestControllerTest {
             SelectedMenuRequest menuRequest = new SelectedMenuRequest(1L, "아메리카노", MenuTemperature.HOT);
             RoomEnterRequest request = new RoomEnterRequest("테스트유저", menuRequest);
 
-            // when & then - 비동기 테스트
-            var result = mockMvc.perform(post("/rooms/{joinCode}", INVALID_JOIN_CODE)
+            // when & then
+            mockMvc.perform(post("/rooms/{joinCode}", INVALID_JOIN_CODE)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(request().asyncStarted())
-                    .andReturn();
-
-            mockMvc.perform(asyncDispatch(result))
                     .andExpect(status().isNotFound());
         }
 
@@ -209,14 +199,10 @@ class RoomRestControllerTest {
             SelectedMenuRequest guestMenuRequest = new SelectedMenuRequest(2L, "라떼", MenuTemperature.ICE);
             RoomEnterRequest enterRequest = new RoomEnterRequest("호스트", guestMenuRequest);
 
-            // when & then - 비동기 테스트
-            var result = mockMvc.perform(post("/rooms/{joinCode}", joinCode)
+            // when & then
+            mockMvc.perform(post("/rooms/{joinCode}", joinCode)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(enterRequest)))
-                    .andExpect(request().asyncStarted())
-                    .andReturn();
-
-            mockMvc.perform(asyncDispatch(result))
                     .andExpect(status().isConflict());
         }
 
@@ -243,27 +229,19 @@ class RoomRestControllerTest {
 
                 RoomEnterRequest enterRequest = new RoomEnterRequest("게스트" + i, menuRequest);
 
-                var result = mockMvc.perform(post("/rooms/{joinCode}", joinCode)
+                mockMvc.perform(post("/rooms/{joinCode}", joinCode)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(enterRequest)))
-                        .andExpect(request().asyncStarted())
-                        .andReturn();
-
-                mockMvc.perform(asyncDispatch(result))
                         .andExpect(status().isOk());
             }
 
             // given - 9번째 게스트 입장 시도 (정원 초과: 호스트 1명 + 게스트 9명 = 총 10명)
             RoomEnterRequest overflowRequest = new RoomEnterRequest("초과유저", menuRequest);
 
-            // when & then - 비동기 테스트
-            var result = mockMvc.perform(post("/rooms/{joinCode}", joinCode)
+            // when & then
+            mockMvc.perform(post("/rooms/{joinCode}", joinCode)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(overflowRequest)))
-                    .andExpect(request().asyncStarted())
-                    .andReturn();
-
-            mockMvc.perform(asyncDispatch(result))
                     .andExpect(status().isConflict());
         }
     }

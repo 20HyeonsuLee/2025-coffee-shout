@@ -9,7 +9,6 @@ import coffeeshout.room.domain.QrCode;
 import coffeeshout.room.domain.Room;
 import coffeeshout.room.domain.event.PlayerKickEvent;
 import coffeeshout.room.domain.event.RoomCreateEvent;
-import coffeeshout.room.domain.event.RoomJoinEvent;
 import coffeeshout.room.domain.menu.Menu;
 import coffeeshout.room.domain.menu.MenuTemperature;
 import coffeeshout.room.domain.menu.SelectedMenu;
@@ -24,24 +23,17 @@ import coffeeshout.room.domain.service.MenuCommandService;
 import coffeeshout.room.domain.service.MenuQueryService;
 import coffeeshout.room.domain.service.RoomCommandService;
 import coffeeshout.room.domain.service.RoomQueryService;
-import coffeeshout.room.infra.messaging.RoomEnterStreamProducer;
-import coffeeshout.room.infra.messaging.RoomEventPublisher;
-import coffeeshout.room.infra.messaging.RoomEventWaitManager;
 import coffeeshout.room.infra.persistence.RoomEntity;
 import coffeeshout.room.infra.persistence.RoomJpaRepository;
 import coffeeshout.room.ui.request.SelectedMenuRequest;
 import coffeeshout.room.ui.response.ProbabilityResponse;
 import coffeeshout.room.ui.response.QrCodeStatusResponse;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,14 +47,9 @@ public class RoomService {
     private final MenuQueryService menuQueryService;
     private final QrCodeService qrCodeService;
     private final JoinCodeGenerator joinCodeGenerator;
-    private final RoomEventPublisher roomEventPublisher;
-    private final RoomEventWaitManager roomEventWaitManager;
+    private final ApplicationEventPublisher roomEventPublisher;
     private final MenuCommandService menuCommandService;
-    private final RoomEnterStreamProducer roomEnterStreamProducer;
     private final RoomJpaRepository roomJpaRepository;
-
-    @Value("${room.event.timeout:PT5S}")
-    private Duration eventTimeout;
 
     @Transactional
     public Room createRoom(String hostName, SelectedMenuRequest selectedMenuRequest) {
@@ -92,53 +79,6 @@ public class RoomService {
 
         // 해당 방 정보 수신
         return room;
-    }
-
-    // === 비동기 메서드들 (REST Controller용) ===
-
-    public CompletableFuture<Room> enterRoomAsync(
-            String joinCode,
-            String guestName,
-            SelectedMenuRequest selectedMenuRequest
-    ) {
-        final RoomJoinEvent event = new RoomJoinEvent(joinCode, guestName, selectedMenuRequest);
-
-        return processEventAsync(
-                event.eventId(),
-                () -> roomEnterStreamProducer.broadcastEnterRoom(event),
-                "방 참가",
-                String.format("joinCode=%s, guestName=%s", joinCode, guestName),
-                room -> String.format("joinCode=%s, guestName=%s", joinCode, guestName)
-        );
-    }
-
-    private <T> CompletableFuture<T> processEventAsync(
-            String eventId,
-            Runnable eventPublisher,
-            String operationName,
-            String logParams,
-            Function<T, String> successLogParams
-    ) {
-        final CompletableFuture<T> future = roomEventWaitManager.registerWait(eventId);
-
-        try {
-            eventPublisher.run();
-        } catch (Exception e) {
-            log.error("{} 이벤트 발행 실패: eventId={}, {}", operationName, eventId, logParams, e);
-            future.completeExceptionally(e);
-            return future;
-        }
-
-        return future.orTimeout(eventTimeout.toMillis(), TimeUnit.MILLISECONDS)
-                .whenComplete((result, throwable) -> {
-                    if (throwable != null) {
-                        log.error("{} 비동기 처리 실패: eventId={}, {}",
-                                operationName, eventId, logParams, throwable);
-                        return;
-                    }
-                    log.info("{} 비동기 처리 완료: {}, eventId={}",
-                            operationName, successLogParams.apply(result), eventId);
-                });
     }
 
     public List<Player> changePlayerReadyState(String joinCode, String playerName, Boolean isReady) {

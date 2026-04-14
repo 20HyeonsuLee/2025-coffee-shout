@@ -4,9 +4,9 @@ import coffeeshout.global.websocket.StompSessionManager;
 import coffeeshout.global.websocket.event.player.PlayerReconnectedEvent;
 import coffeeshout.global.websocket.event.session.SessionEventType;
 import coffeeshout.global.websocket.event.session.SessionRegisteredEvent;
-import coffeeshout.global.websocket.infra.PlayerEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class SessionRegisteredEventHandler implements SessionEventHandler<SessionRegisteredEvent> {
 
     private final StompSessionManager sessionManager;
-    private final PlayerEventPublisher playerEventPublisher;
+    private final ApplicationEventPublisher playerEventPublisher;
 
     @Override
     public void handle(SessionRegisteredEvent event) {

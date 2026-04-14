@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import org.springframework.http.ResponseEntity;
 
 @Tag(name = "Room", description = "방 관련 API")
@@ -21,7 +20,7 @@ public interface RoomApi {
     ResponseEntity<RoomCreateResponse> createRoom(RoomEnterRequest request);
 
     @Operation(summary = "방 참가", description = "joinCode를 사용하여 방에 참가합니다.")
-    CompletableFuture<ResponseEntity<RoomEnterResponse>> enterRoom(
+    ResponseEntity<RoomEnterResponse> enterRoom(
             @Parameter(description = "방 입장 코드", required = true) String joinCode,
             RoomEnterRequest request
     );

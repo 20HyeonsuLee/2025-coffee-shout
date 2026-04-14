@@ -6,11 +6,11 @@ import coffeeshout.room.domain.QrCodeStatus;
 import coffeeshout.room.domain.RoomErrorCode;
 import coffeeshout.room.domain.event.QrCodeStatusEvent;
 import coffeeshout.room.domain.service.QrCodeGenerator;
-import coffeeshout.room.infra.messaging.RoomEventPublisher;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -24,14 +24,14 @@ public class QrCodeService {
     private final StorageService storageService;
     private final MeterRegistry meterRegistry;
     private final Timer qrCodeGenerationTimer;
-    private final RoomEventPublisher roomEventPublisher;
+    private final ApplicationEventPublisher roomEventPublisher;
 
     public QrCodeService(
             QrProperties qrProperties,
             QrCodeGenerator qrCodeGenerator,
             StorageService storageService,
             MeterRegistry meterRegistry,
-            RoomEventPublisher roomEventPublisher
+            ApplicationEventPublisher roomEventPublisher
     ) {
         this.qrCodePrefix = qrProperties.prefix();
         this.qrCodeGenerator = qrCodeGenerator;

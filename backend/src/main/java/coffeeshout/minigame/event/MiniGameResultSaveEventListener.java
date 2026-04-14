@@ -1,6 +1,5 @@
 package coffeeshout.minigame.event;
 
-import coffeeshout.global.lock.RedisLock;
 import coffeeshout.minigame.domain.MiniGameResult;
 import coffeeshout.minigame.domain.MiniGameScore;
 import coffeeshout.minigame.domain.MiniGameType;
@@ -38,13 +37,6 @@ public class MiniGameResultSaveEventListener {
 
     @EventListener
     @Transactional
-    @RedisLock(
-            key = "#event.eventId()",
-            lockPrefix = "minigame:result:lock:",
-            donePrefix = "minigame:result:done:",
-            waitTime = 0,
-            leaseTime = 5000
-    )
     public void handle(MiniGameFinishedEvent event) {
         final RoomEntity roomEntity = roomJpaRepository.findFirstByJoinCodeOrderByCreatedAtDesc(event.joinCode())
                 .orElseThrow(() -> new IllegalArgumentException("방이 존재하지 않습니다: " + event.joinCode()));
