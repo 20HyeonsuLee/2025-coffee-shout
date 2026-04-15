@@ -21,4 +21,6 @@ public interface RoomRepository {
     void updatePlayerReady(JoinCode joinCode, PlayerName playerName, boolean ready);
 
     void removePlayer(JoinCode joinCode, PlayerName playerName);
+
+    void updatePositions(JoinCode joinCode, java.util.Map<PlayerName, Integer> positions);
 }

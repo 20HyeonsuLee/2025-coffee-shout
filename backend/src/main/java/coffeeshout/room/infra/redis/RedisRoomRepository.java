@@ -14,9 +14,12 @@ import coffeeshout.room.domain.repository.RoomRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +51,7 @@ public class RedisRoomRepository implements RoomRepository {
     private static final String PLAYER_LIST_UPDATE = "PLAYER_LIST_UPDATE";
     private static final String PLAYER_READY = "PLAYER_READY";
     private static final String ROOM_CREATE = "ROOM_CREATE";
+    private static final String RACING_POSITIONS = "RACING_POSITIONS";
     private static final long OK = 1L;
     private static final long DUPLICATE_JOINCODE = -1L;
     private static final long FULL = -1L;
@@ -61,6 +65,7 @@ public class RedisRoomRepository implements RoomRepository {
     private final RedisScript<Long> enterRoomScript;
     private final RedisScript<Long> toggleReadyScript;
     private final RedisScript<Long> removePlayerScript;
+    private final RedisScript<Long> updatePositionsScript;
     private final PubSubEnvelopeSerializer envelopeSerializer;
     private final ObjectMapper objectMapper;
     private final RedisRoomMapper mapper;
@@ -76,6 +81,7 @@ public class RedisRoomRepository implements RoomRepository {
             final RedisScript<Long> enterRoomScript,
             final RedisScript<Long> toggleReadyScript,
             final RedisScript<Long> removePlayerScript,
+            final RedisScript<Long> updatePositionsScript,
             final PubSubEnvelopeSerializer envelopeSerializer,
             final ObjectMapper objectMapper,
             final RedisRoomMapper mapper,
@@ -87,6 +93,7 @@ public class RedisRoomRepository implements RoomRepository {
         this.enterRoomScript = enterRoomScript;
         this.toggleReadyScript = toggleReadyScript;
         this.removePlayerScript = removePlayerScript;
+        this.updatePositionsScript = updatePositionsScript;
         this.envelopeSerializer = envelopeSerializer;
         this.objectMapper = objectMapper;
         this.mapper = mapper;
@@ -197,6 +204,47 @@ public class RedisRoomRepository implements RoomRepository {
         );
         redisTemplate.opsForHash().delete(PLAYER_DATA_KEY.formatted(code), playerName.value());
         log.debug("플레이어 제거 완료: joinCode={}, player={}", code, playerName.value());
+    }
+
+    @Override
+    public void updatePositions(final JoinCode joinCode, final Map<PlayerName, Integer> positions) {
+        if (positions.isEmpty()) {
+            return;
+        }
+        final String code = joinCode.getValue();
+        final Map<String, Integer> snapshot = toNameKeyedSnapshot(positions);
+        final String envelope = buildEnvelope(RACING_POSITIONS, code, Map.of(
+                "joinCode", code,
+                "positions", snapshot
+        ));
+        final List<String> args = buildPositionArgs(snapshot, envelope);
+
+        stringRedisTemplate.execute(
+                updatePositionsScript,
+                List.of(POSITIONS_KEY.formatted(code)),
+                args.toArray()
+        );
+    }
+
+    private Map<String, Integer> toNameKeyedSnapshot(final Map<PlayerName, Integer> positions) {
+        return positions.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().value(),
+                        Map.Entry::getValue,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
+    }
+
+    private List<String> buildPositionArgs(final Map<String, Integer> snapshot, final String envelope) {
+        final List<String> args = new ArrayList<>(2 + snapshot.size() * 2);
+        args.add(String.valueOf(ttl.toSeconds()));
+        args.add(envelope);
+        snapshot.forEach((name, position) -> {
+            args.add(name);
+            args.add(String.valueOf(position));
+        });
+        return args;
     }
 
     private void createRoom(final Room room, final String code) {

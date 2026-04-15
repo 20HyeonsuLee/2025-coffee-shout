@@ -225,3 +225,71 @@ cmdstat_evalsha:calls=87, usec=1586, usec_per_call=18.23
 - `RedisRoomRepository`는 Lua 호출 경로 + 예외 전환 + Hash 쓰기만 담당 (매핑 책임은 Mapper로 분리)
 - Lua 5종 전부 호출 경로 연결 — multi-WAS race 가드 (정원/중복이름/플레이어 존재 검증) 이제 Redis 층에서 원자적으로 보장
 - `save(room)` 패턴은 최초 생성에만 유지, mutation은 세분화된 신규 3개 메서드로 이전
+
+## 후속 보강 (2026-04-15 2차)
+
+Sprint 3 설계 §4.4 positions Hash 미구현 + §9 multi-WAS 검증 스킵 두 건을 마감.
+
+### A. RacingGame `positions` Redis 이전
+
+| 항목 | 변경 |
+|---|---|
+| `src/main/resources/lua/update_positions.lua` | 신규 — HSET + EXPIRE + PUBLISH envelope 원자 |
+| `global/config/redis/LuaScriptConfig.java` | `updatePositionsScript` 빈 추가 |
+| `room/domain/repository/RoomRepository.java` | `updatePositions(JoinCode, Map<PlayerName, Integer>)` 계약 추가 |
+| `room/infra/redis/RedisRoomRepository.java` | Lua 호출 + envelope 조립 (이벤트 타입 `RACING_POSITIONS`) |
+| `room/domain/repository/MemoryRoomRepository.java` | no-op (test 프로파일은 Runner 메모리로 충분) |
+| `racinggame/domain/RacingGame.java` | `getPositionsByName()` 추가 (PlayerName 키로 스냅샷 반환) |
+| `racinggame/application/RacingGameService.java` | `publishRunnersMoved` 경로에서 tick마다 Redis flush. 실패 시 warn 로그 후 tick 계속 |
+
+### B. Multi-WAS LB 구성
+
+| 파일 | 내용 |
+|---|---|
+| `docker-compose.multi.yml` | mysql + redis 공유, app-1(8081) · app-2(8082) 복제, nginx(8000) round-robin |
+| `nginx/nginx.conf` | `upstream coffeeshout`에 app-1:8080, app-2:8080. sticky 없음. `X-Upstream` 응답 헤더로 처리 WAS 노출 |
+
+기동 후 `curl http://localhost:8000/actuator/health` 4회 → `X-Upstream: 172.18.0.4:8080 / 172.18.0.5:8080` 번갈아 관찰, round-robin 확인.
+
+### C. 검증에서 드러난 피드백 루프 버그
+
+**증상**: LB 기동 후 artillery 종료, 클라 없음에도 Redis `evalsha`/`publish` 6,000 calls/sec 지속.
+
+**원인**: `PubSubSubscriber`가 원격 envelope 수신 시 `ApplicationEventPublisher.publishEvent(new PlayerReadyEvent(...))`를 호출 → 로컬 핸들러 `PlayerReadyEventHandler.handle`이 `changePlayerReadyStateInternal`(쓰기 경로) 실행 → Lua가 PUBLISH envelope → 또 원격 WAS가 받음 → 무한 루프. 단일 WAS에서는 자기 메시지 skip으로 감춰져 있던 문제.
+
+```
+app-1 write → Lua PUBLISH
+          ↓
+    app-2 subscriber receives
+          ↓
+    app-2 republishes PlayerReadyEvent locally
+          ↓
+    app-2 handler calls changePlayerReadyStateInternal → Lua PUBLISH
+          ↓
+    app-1 subscriber receives → app-1 republishes → handler → write → PUBLISH ...
+```
+
+**수정** (`global/messaging/PubSubSubscriber.java`):
+- ApplicationEventPublisher 주입 제거
+- 원격 envelope 수신 시 쓰기 핸들러를 거치지 않고 `RoomService.getPlayersInternal` + `LoggingSimpMessagingTemplate.convertAndSend`로 **읽기 + WebSocket 브로드캐스트만** 수행
+- PLAYER_LIST_UPDATE / PLAYER_READY / PLAYER_KICK 모두 같은 "플레이어 목록 갱신 → `/topic/room/{joinCode}` 송신" 패턴이므로 단일 `broadcastPlayerList` 로 통합
+- 자기 메시지 skip은 유지 (이중 브로드캐스트 방지)
+
+**검증**:
+- `./gradlew test` BUILD SUCCESSFUL (0 failed)
+- 재배포 후 idle 30초 Redis 통계: **0 calls** (피드백 루프 제거)
+- Artillery ready-toggle 통과 후에도 idle 복귀 시 0 calls
+
+### D. Multi-WAS split-brain 검증 결과
+
+| 검증 | 결과 |
+|---|---|
+| `POST /rooms` (app-1) → `POST /rooms/{code}` (app-2) 입장 | 200 OK |
+| 양쪽 WAS `GET /rooms/{code}/probabilities` diff | **일치** (split-brain 없음) |
+| 5게스트 무작위 WAS 분산 입장 → 6명 전원 Redis `SMEMBERS`에 존재 | PASS |
+| Redis PSUBSCRIBE coffeeshout:events — originInstanceId 두 종류 관찰 | 두 WAS 각자 publish 확인 |
+| `PUBSUB NUMSUB coffeeshout:events` | **2** (두 WAS 모두 구독) |
+| Artillery ready-toggle through `nginx:8000` | 0 failed |
+| app-1 이벤트 처리 23건 vs app-2 35건 | round-robin 분산 처리 확인 |
+
+Sprint 3 본문에서 "Phase 2 선택"으로 미뤘던 multi-WAS 확장 검증과 §4.4 positions Hash 구현이 마무리됐다.

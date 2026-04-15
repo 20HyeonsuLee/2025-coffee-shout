@@ -39,6 +39,11 @@ public class LuaScriptConfig {
         return loadScript("lua/remove_player.lua", Long.class);
     }
 
+    @Bean
+    public RedisScript<Long> updatePositionsScript() {
+        return loadScript("lua/update_positions.lua", Long.class);
+    }
+
     private <T> RedisScript<T> loadScript(final String path, final Class<T> resultType) {
         final DefaultRedisScript<T> script = new DefaultRedisScript<>();
         script.setLocation(new ClassPathResource(path));

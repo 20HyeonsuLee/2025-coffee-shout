@@ -65,6 +65,11 @@ public class MemoryRoomRepository implements RoomRepository {
         requireRoom(joinCode);
     }
 
+    @Override
+    public void updatePositions(final JoinCode joinCode, final Map<PlayerName, Integer> positions) {
+        // 메모리 구현에서는 Runner가 상태를 그대로 들고 있으므로 외부 반영 불필요.
+    }
+
     private Room requireRoom(final JoinCode joinCode) {
         final Room room = rooms.get(joinCode);
         if (room == null) {
