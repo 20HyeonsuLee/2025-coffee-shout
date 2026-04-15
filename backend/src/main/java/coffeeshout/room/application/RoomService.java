@@ -126,7 +126,7 @@ public class RoomService {
         }
 
         player.updateReadyState(isReady);
-        roomCommandService.save(room);
+        roomCommandService.updatePlayerReady(new JoinCode(joinCode), new PlayerName(playerName), isReady);
         return room.getPlayers();
     }
 
@@ -213,12 +213,17 @@ public class RoomService {
     public boolean removePlayer(String joinCode, String playerName) {
         final JoinCode code = new JoinCode(joinCode);
         final Room room = roomQueryService.getByJoinCode(code);
+        final PlayerName name = new PlayerName(playerName);
 
-        boolean isRemoved = room.removePlayer(new PlayerName(playerName));
+        final boolean isRemoved = room.removePlayer(name);
+        if (!isRemoved) {
+            return false;
+        }
+        roomCommandService.removePlayer(code, name);
         if (room.isEmpty()) {
             roomCommandService.delete(code);
         }
-        return isRemoved;
+        return true;
     }
 
     public boolean isReadyState(String joinCode) {

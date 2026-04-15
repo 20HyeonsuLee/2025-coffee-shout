@@ -15,19 +15,42 @@ public class Player {
     private Integer colorIndex;
     private Probability probability;
 
-    private Player(PlayerName name, SelectedMenu selectedMenu, Boolean isReady, PlayerType playerType) {
+    private Player(
+            PlayerName name,
+            PlayerType playerType,
+            SelectedMenu selectedMenu,
+            Boolean isReady,
+            Integer colorIndex,
+            Probability probability
+    ) {
         this.name = name;
         this.playerType = playerType;
         this.selectedMenu = selectedMenu;
         this.isReady = isReady;
+        this.colorIndex = colorIndex;
+        this.probability = probability;
     }
 
     public static Player createHost(PlayerName name, SelectedMenu selectedMenu) {
-        return new Player(name, selectedMenu, true, PlayerType.HOST);
+        return new Player(name, PlayerType.HOST, selectedMenu, true, null, null);
     }
 
     public static Player createGuest(PlayerName name, SelectedMenu selectedMenu) {
-        return new Player(name, selectedMenu, false, PlayerType.GUEST);
+        return new Player(name, PlayerType.GUEST, selectedMenu, false, null, null);
+    }
+
+    /**
+     * 저장소에서 읽어 온 값으로 Player를 복원하는 팩터리.
+     */
+    public static Player ofStored(
+            final PlayerName name,
+            final PlayerType playerType,
+            final SelectedMenu selectedMenu,
+            final Boolean isReady,
+            final Integer colorIndex,
+            final Probability probability
+    ) {
+        return new Player(name, playerType, selectedMenu, isReady, colorIndex, probability);
     }
 
     public void selectMenu(SelectedMenu selectedMenu) {

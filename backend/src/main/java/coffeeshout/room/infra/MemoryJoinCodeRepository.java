@@ -7,9 +7,11 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@Profile("test")
 public class MemoryJoinCodeRepository implements JoinCodeRepository {
 
     private final Map<JoinCode, Instant> store = new ConcurrentHashMap<>();

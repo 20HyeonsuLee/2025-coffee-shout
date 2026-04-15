@@ -16,6 +16,12 @@ spring:
       ddl-auto: create
   flyway:
     enabled: false
+  data:
+    redis:
+      host: redis
+      port: 6379
+      ssl:
+        enabled: false
 
 management:
   endpoint:

@@ -324,6 +324,28 @@ Lua 단일 스레드 성질로 "check + mutate + PUBLISH" 경합이 제거된다
 - 전체 코드는 developer 단계에서 작성. 본 설계는 계약(명세)만 고정
 - 테스트 환경 제약: Valkey 테스트 컨테이너에서 `EVAL` 비활성 → **Docker Compose + 실제 Redis 7.x** 로 통합 테스트. 유닛 테스트는 이 경로를 타지 않음.
 
+### Lua 실패 의미론 (중요)
+
+Redis Lua는 **atomic execution**(다른 클라이언트 개입 차단)은 보장하지만 **transactional rollback**은 보장하지 않는다. 중간 `redis.call` 런타임 에러 시 **이전 mutate는 commit된 상태로 잔존**한다.
+
+| 실패 유형 | 예시 | 이전 명령 영향 |
+|---|---|---|
+| 명시적 `return -1` (비즈니스 실패) | 정원 초과 조기 반환 | 아직 mutate 전 → 영향 없음 |
+| `redis.call` 런타임 에러 | 잘못된 key 타입, ARGV 파싱 실패 | **commit 잔존** |
+| OOM / 노드 장애 | 중간 메모리 부족 | 같음 |
+
+**완화 전략** (개발 원칙으로 강제):
+
+1. **ARGV 검증은 Java에서** — Lua는 이미 검증된 값만 받는다. 런타임 에러 가능성 최소화.
+2. **Mutate 순서: 핵심을 마지막에** — 앞 mutate가 commit되어도 핵심(`PUBLISH` 또는 마지막 상태 전이)이 실패하면 "없었던 일"로 수렴하도록 설계.
+3. **멱등성** — `SADD`(중복 무해), `HSET`(덮어쓰기 무해) 같이 재시도 안전한 연산 위주. `INCR` 같은 누적 연산은 별도 보호.
+4. **`redis.pcall` 선택적 사용** — 에러 후 수동 복구가 필요한 고급 경우만. 기본은 `redis.call`.
+5. **스크립트 10~20줄 제한**이 곧 리스크 축소 — 단순할수록 에러 발생 면적 감소.
+
+**Cluster 환경에서 의미론**: 같은 slot 내 단일 노드 실행이라 의미론은 **단일 노드와 동일**. `{joinCode}` hash tag 일관 적용으로 `CROSSSLOT` 에러 구조적 차단. 다만 **failover 중 EVAL drop** 가능성이 있어 클라이언트 재시도 로직 필요(Redisson/Lettuce 기본 탑재).
+
+**MULTI/EXEC과 비교**: Redis의 MULTI/EXEC도 rollback 없음. Lua와 동급의 원자성. "Redis에는 트랜잭션 없다"가 정확한 표현.
+
 ### Cluster 주의 (Sprint 3 범위 밖이지만 명시)
 
 - **baseline (단일 노드)**: `PUBLISH`는 전역 broadcast. 제약 없음.

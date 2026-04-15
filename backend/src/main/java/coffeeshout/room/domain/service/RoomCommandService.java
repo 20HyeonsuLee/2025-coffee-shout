@@ -30,13 +30,23 @@ public class RoomCommandService {
         roomRepository.deleteByJoinCode(joinCode);
     }
 
+    public void updatePlayerReady(final JoinCode joinCode, final PlayerName playerName, final boolean ready) {
+        roomRepository.updatePlayerReady(joinCode, playerName, ready);
+    }
+
+    public void removePlayer(final JoinCode joinCode, final PlayerName playerName) {
+        roomRepository.removePlayer(joinCode, playerName);
+    }
+
     public Room joinGuest(JoinCode joinCode, PlayerName playerName, Menu menu, MenuTemperature menuTemperature) {
         log.info("JoinCode[{}] 게스트 입장 - 게스트 이름: {}, 메뉴 정보: {}, 온도 : {} ", joinCode, playerName, menu, menuTemperature);
         final Room room = roomQueryService.getByJoinCode(joinCode);
 
         room.joinGuest(playerName, new SelectedMenu(menu, menuTemperature));
 
-        return save(room);
+        final coffeeshout.room.domain.player.Player guest = room.findPlayer(playerName);
+        roomRepository.addPlayer(joinCode, guest);
+        return room;
     }
 
     public Room saveIfAbsentRoom(JoinCode joinCode, PlayerName hostName, Menu menu, MenuTemperature menuTemperature) {

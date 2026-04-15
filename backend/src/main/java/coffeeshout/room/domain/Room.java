@@ -49,6 +49,28 @@ public class Room {
         return new Room(joinCode, hostName, selectedMenu);
     }
 
+    /**
+     * 저장소에서 읽어 온 값으로 Room을 복원하는 팩터리.
+     * 이미 구성된 Players와 상태 값으로 생성하며 도메인 규칙 검증은 생략한다.
+     */
+    public static Room ofStored(
+            JoinCode joinCode,
+            Player host,
+            Players players,
+            RoomState roomState
+    ) {
+        return new Room(joinCode, host, players, roomState);
+    }
+
+    private Room(JoinCode joinCode, Player host, Players players, RoomState roomState) {
+        this.joinCode = joinCode;
+        this.host = host;
+        this.players = players;
+        this.roomState = roomState;
+        this.miniGames = new LinkedList<>();
+        this.finishedGames = new ArrayList<>();
+    }
+
     public void joinGuest(PlayerName guestName, SelectedMenu selectedMenu) {
         validateRoomReady();
         validateCanJoin();

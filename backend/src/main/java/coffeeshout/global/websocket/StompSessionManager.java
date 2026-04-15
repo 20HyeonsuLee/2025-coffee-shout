@@ -6,10 +6,16 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+/**
+ * 테스트 전용 메모리 기반 StompSessionManager.
+ * @Profile("!test") 환경에서는 RedisStompSessionManager 가 대신 활성화된다.
+ */
 @Slf4j
 @Component
+@Profile("test")
 public class StompSessionManager {
 
     private static final String PLAYER_KEY_DELIMITER = ":";
@@ -50,7 +56,7 @@ public class StompSessionManager {
      */
     public void registerPlayerSessionInternal(@NonNull String playerKey, @NonNull String sessionId) {
         validatePlayerKey(playerKey);
-        
+
         // 기존 세션이 있으면 정리
         final String oldSessionId = playerSessionMap.get(playerKey);
         if (oldSessionId != null) {

@@ -24,6 +24,15 @@ public class Players {
         this.colorUsage = new ColorUsage(joinCode);
     }
 
+    /**
+     * 저장소에서 읽어 온 Player 목록으로 Players 일급 컬렉션을 복원하는 팩터리.
+     */
+    public static Players ofStored(final String joinCode, final List<Player> storedPlayers) {
+        final Players players = new Players(joinCode);
+        players.players.addAll(storedPlayers);
+        return players;
+    }
+
     public synchronized Player join(Player player) {
         player.assignColorIndex(colorUsage.pickRandomOne());
         player.updateProbability(Probability.ZERO);
