@@ -1,6 +1,7 @@
 package coffeeshout.global.messaging;
 
 import coffeeshout.global.exception.custom.NotExistElementException;
+import coffeeshout.global.metric.PubSubMetricService;
 import coffeeshout.global.ui.WebSocketResponse;
 import coffeeshout.global.websocket.LoggingSimpMessagingTemplate;
 import coffeeshout.room.application.RoomService;
@@ -34,6 +35,7 @@ public class PubSubSubscriber implements MessageListener {
     private final RoomService roomService;
     private final LoggingSimpMessagingTemplate messagingTemplate;
     private final @Qualifier("selfInstanceId") String selfInstanceId;
+    private final PubSubMetricService pubSubMetric;
 
     @Override
     public void onMessage(final Message message, final byte[] pattern) {
@@ -42,11 +44,16 @@ public class PubSubSubscriber implements MessageListener {
 
         if (selfInstanceId.equals(envelope.originInstanceId())) {
             log.debug("자기 메시지 skip: eventType={}, joinCode={}", envelope.eventType(), envelope.joinCode());
+            pubSubMetric.recordReceive(envelope.eventType());
+            pubSubMetric.recordSelfSkip();
             return;
         }
 
         log.debug("Pub/Sub 수신: eventType={}, joinCode={}, origin={}",
                 envelope.eventType(), envelope.joinCode(), envelope.originInstanceId());
+
+        pubSubMetric.recordReceive(envelope.eventType());
+        pubSubMetric.recordPropagationDelay(envelope.publishedAt(), System.currentTimeMillis());
 
         broadcast(envelope);
     }

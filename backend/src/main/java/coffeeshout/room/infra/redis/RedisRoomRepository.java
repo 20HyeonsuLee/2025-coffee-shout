@@ -5,6 +5,8 @@ import coffeeshout.global.exception.custom.InvalidStateException;
 import coffeeshout.global.exception.custom.NotExistElementException;
 import coffeeshout.global.messaging.PubSubEnvelope;
 import coffeeshout.global.messaging.PubSubEnvelopeSerializer;
+import coffeeshout.global.metric.LuaScriptMetricService;
+import coffeeshout.global.metric.PubSubMetricService;
 import coffeeshout.room.domain.JoinCode;
 import coffeeshout.room.domain.Room;
 import coffeeshout.room.domain.RoomErrorCode;
@@ -70,6 +72,8 @@ public class RedisRoomRepository implements RoomRepository {
     private final ObjectMapper objectMapper;
     private final RedisRoomMapper mapper;
     private final String selfInstanceId;
+    private final LuaScriptMetricService luaMetric;
+    private final PubSubMetricService pubSubMetric;
 
     @Value("${room.removalDelay}")
     private Duration ttl;
@@ -85,7 +89,9 @@ public class RedisRoomRepository implements RoomRepository {
             final PubSubEnvelopeSerializer envelopeSerializer,
             final ObjectMapper objectMapper,
             final RedisRoomMapper mapper,
-            final @Qualifier("selfInstanceId") String selfInstanceId
+            final @Qualifier("selfInstanceId") String selfInstanceId,
+            final LuaScriptMetricService luaMetric,
+            final PubSubMetricService pubSubMetric
     ) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.redisTemplate = redisTemplate;
@@ -98,6 +104,8 @@ public class RedisRoomRepository implements RoomRepository {
         this.objectMapper = objectMapper;
         this.mapper = mapper;
         this.selfInstanceId = selfInstanceId;
+        this.luaMetric = luaMetric;
+        this.pubSubMetric = pubSubMetric;
     }
 
     @Override
@@ -148,14 +156,17 @@ public class RedisRoomRepository implements RoomRepository {
         final String code = joinCode.getValue();
         final String envelope = buildEnvelope(PLAYER_LIST_UPDATE, code, Map.of("joinCode", code));
 
-        final Long result = stringRedisTemplate.execute(
-                enterRoomScript,
+        final Long result = executeAndRecord(
+                enterRoomScript, "enter_room",
                 List.of(META_KEY.formatted(code), PLAYERS_KEY.formatted(code)),
                 player.getName().value(),
                 String.valueOf(MAX_PLAYERS),
                 envelope
         );
 
+        if (result != null && result == OK) {
+            pubSubMetric.recordPublish(PLAYER_LIST_UPDATE);
+        }
         validateEnterResult(result, player.getName().value());
         writePlayer(code, player);
         log.debug("플레이어 추가 완료: joinCode={}, player={}", code, player.getName().value());
@@ -169,14 +180,17 @@ public class RedisRoomRepository implements RoomRepository {
                 "isReady", ready
         ));
 
-        final Long result = stringRedisTemplate.execute(
-                toggleReadyScript,
+        final Long result = executeAndRecord(
+                toggleReadyScript, "toggle_ready",
                 List.of(PLAYERS_KEY.formatted(code), READY_KEY.formatted(code)),
                 playerName.value(),
                 String.valueOf(ready),
                 envelope
         );
 
+        if (result != null && result == OK) {
+            pubSubMetric.recordPublish(PLAYER_READY);
+        }
         if (result == null || result == PLAYER_NOT_FOUND) {
             throw new NotExistElementException(RoomErrorCode.NO_EXIST_PLAYER,
                     "플레이어가 존재하지 않습니다: " + playerName.value());
@@ -192,8 +206,8 @@ public class RedisRoomRepository implements RoomRepository {
                 "playerName", playerName.value()
         ));
 
-        stringRedisTemplate.execute(
-                removePlayerScript,
+        final Long removeResult = executeAndRecord(
+                removePlayerScript, "remove_player",
                 List.of(
                         PLAYERS_KEY.formatted(code),
                         READY_KEY.formatted(code),
@@ -202,6 +216,9 @@ public class RedisRoomRepository implements RoomRepository {
                 playerName.value(),
                 envelope
         );
+        if (removeResult != null && removeResult == OK) {
+            pubSubMetric.recordPublish(PLAYER_LIST_UPDATE);
+        }
         redisTemplate.opsForHash().delete(PLAYER_DATA_KEY.formatted(code), playerName.value());
         log.debug("플레이어 제거 완료: joinCode={}, player={}", code, playerName.value());
     }
@@ -219,11 +236,14 @@ public class RedisRoomRepository implements RoomRepository {
         ));
         final List<String> args = buildPositionArgs(snapshot, envelope);
 
-        stringRedisTemplate.execute(
-                updatePositionsScript,
+        final Long posResult = executeAndRecord(
+                updatePositionsScript, "update_positions",
                 List.of(POSITIONS_KEY.formatted(code)),
-                args.toArray()
+                args.toArray(new String[0])
         );
+        if (posResult != null && posResult == OK) {
+            pubSubMetric.recordPublish(RACING_POSITIONS);
+        }
     }
 
     private Map<String, Integer> toNameKeyedSnapshot(final Map<PlayerName, Integer> positions) {
@@ -249,8 +269,8 @@ public class RedisRoomRepository implements RoomRepository {
 
     private void createRoom(final Room room, final String code) {
         final String envelope = buildEnvelope(ROOM_CREATE, code, Map.of("joinCode", code));
-        final Long result = stringRedisTemplate.execute(
-                createRoomScript,
+        final Long result = executeAndRecord(
+                createRoomScript, "create_room",
                 List.of(
                         META_KEY.formatted(code),
                         PLAYERS_KEY.formatted(code),
@@ -265,6 +285,9 @@ public class RedisRoomRepository implements RoomRepository {
                 envelope
         );
 
+        if (result != null && result == OK) {
+            pubSubMetric.recordPublish(ROOM_CREATE);
+        }
         if (result != null && result == DUPLICATE_JOINCODE) {
             log.warn("방 생성 실패 - 중복 joinCode: {}", code);
         }
@@ -320,6 +343,15 @@ public class RedisRoomRepository implements RoomRepository {
                     "방이 존재하지 않습니다: playerName=" + playerName);
         }
         throw new IllegalStateException("알 수 없는 Lua 반환값: " + result);
+    }
+
+    private Long executeAndRecord(final RedisScript<Long> script, final String scriptName,
+                                   final List<String> keys, final String... args) {
+        final long start = System.nanoTime();
+        final Long result = stringRedisTemplate.execute(script, keys, (Object[]) args);
+        final long durationNanos = System.nanoTime() - start;
+        luaMetric.recordExecution(scriptName, result != null ? result : -99, durationNanos);
+        return result;
     }
 
     private String buildEnvelope(final String eventType, final String joinCode, final Map<String, Object> payload) {

@@ -1,0 +1,76 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:concurrencydb;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+        show_sql: false
+  lifecycle:
+    timeout-per-shutdown-phase: 1s
+  flyway:
+    enabled: false
+  cloud:
+    aws:
+      region:
+        static: ap-northeast-2
+      s3:
+        bucket: test-bucket
+  data:
+    redis:
+      ssl:
+        enabled: false
+      # host/port은 @DynamicPropertySource로 주입
+
+server:
+  shutdown: immediate
+
+redisson:
+  enabled: true
+
+logging:
+  level:
+    root: warn
+    coffeeshout: info
+    coffeeshout.global.messaging: debug
+    coffeeshout.room.infra: debug
+
+management:
+  tracing:
+    enabled: false
+  otlp:
+    tracing:
+      endpoint: http://localhost:9999/noop
+  metrics:
+    enable:
+      tomcat: false
+
+room:
+  removalDelay: 10m
+  qr:
+    prefix: https://coffee-shout.test/join/
+    width: 150
+    height: 150
+    presignedUrl:
+      expirationHours: 1
+    s3-key-prefix: qr/
+  event:
+    timeout: 5s
+
+websocket:
+  inbound:
+    virtual-threads: false
+    concurrency-limit: 16
+    pool-size: 4
+  docs:
+    enabled: false
+
+tracing:
+  sampling:
+    probability: 0.0

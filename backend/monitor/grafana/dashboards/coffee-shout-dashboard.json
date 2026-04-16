@@ -874,11 +874,348 @@
       ],
       "title": "Network PPS (Packets/s)",
       "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 125 },
+      "id": 200,
+      "title": "Sprint 3 — Lua Atomicity",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 126 },
+      "id": 201,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "sum(rate(lua_script_result_total{job=\"spring-boot-app\"}[1m])) by (script)", "legendFormat": "{{script}}", "refId": "A" }
+      ],
+      "title": "Lua Script Execution Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 126 },
+      "id": 202,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(lua_script_execution_time_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le, script))", "legendFormat": "p95 {{script}}", "refId": "A" },
+        { "expr": "histogram_quantile(0.99, sum(rate(lua_script_execution_time_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le, script))", "legendFormat": "p99 {{script}}", "refId": "B" }
+      ],
+      "title": "Lua Script Execution Time (p95/p99)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 134 },
+      "id": 203,
+      "options": {
+        "footer": { "enablePagination": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Value" }]
+      },
+      "targets": [
+        { "expr": "sum(lua_script_result_total{job=\"spring-boot-app\"}) by (script, result)", "format": "table", "instant": true, "refId": "A" }
+      ],
+      "title": "Lua Script Result Distribution",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 1 }, { "color": "red", "value": 10 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 134 },
+      "id": 204,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(lua_script_result_total{job=\"spring-boot-app\", result!=\"1\"})", "legendFormat": "Total Rejections", "refId": "A" }
+      ],
+      "title": "Lua Rejection Count (result ≠ 1)",
+      "type": "stat"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 142 },
+      "id": 210,
+      "title": "Sprint 3 — Redis OPS",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 143 },
+      "id": 211,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "redis_instantaneous_ops_per_sec{job=\"redis-exporter\"}", "legendFormat": "Redis OPS", "refId": "A" }
+      ],
+      "title": "Redis Instantaneous OPS",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 143 },
+      "id": 212,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(redis_commands_total{job=\"redis-exporter\", cmd=\"evalsha\"}[1m])", "legendFormat": "EVALSHA/sec", "refId": "A" }
+      ],
+      "title": "EVALSHA/sec",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 143 },
+      "id": 213,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "mean"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "rate(redis_commands_total{job=\"redis-exporter\", cmd=\"publish\"}[1m])", "legendFormat": "PUBLISH/sec", "refId": "A" }
+      ],
+      "title": "PUBLISH/sec",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 151 },
+      "id": 220,
+      "title": "Sprint 3 — Pub/Sub",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 152 },
+      "id": 221,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "sum(rate(pubsub_message_published_total{job=\"spring-boot-app\"}[1m])) by (eventType)", "legendFormat": "published {{eventType}}", "refId": "A" },
+        { "expr": "sum(rate(pubsub_message_received_total{job=\"spring-boot-app\"}[1m])) by (eventType)", "legendFormat": "received {{eventType}}", "refId": "B" }
+      ],
+      "title": "Published vs Received",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 152 },
+      "id": 222,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(pubsub_message_self_skip_total{job=\"spring-boot-app\"})", "legendFormat": "Self-Skip Total", "refId": "A" }
+      ],
+      "title": "Self-Skip Count",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 152 },
+      "id": 223,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(pubsub_propagation_delay_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le))", "legendFormat": "p95", "refId": "A" },
+        { "expr": "histogram_quantile(0.99, sum(rate(pubsub_propagation_delay_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le))", "legendFormat": "p99", "refId": "B" }
+      ],
+      "title": "Pub/Sub Propagation Delay (p95/p99)",
+      "type": "timeseries"
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 160 },
+      "id": 230,
+      "title": "Sprint 3 — Race Condition",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 161 },
+      "id": 231,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(lua_script_result_total{job=\"spring-boot-app\", script=\"claim_joincode\", result=\"0\"}) or vector(0)", "legendFormat": "JoinCode Duplicates", "refId": "A" }
+      ],
+      "title": "JoinCode Duplicates",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 161 },
+      "id": 232,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(lua_script_result_total{job=\"spring-boot-app\", script=\"enter_room\", result=\"-1\"}) or vector(0)", "legendFormat": "Room Full", "refId": "A" }
+      ],
+      "title": "Room Full Rejections",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 161 },
+      "id": 233,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(lua_script_result_total{job=\"spring-boot-app\", script=\"enter_room\", result=\"-2\"}) or vector(0)", "legendFormat": "Duplicate Name", "refId": "A" }
+      ],
+      "title": "Duplicate Name Rejections",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 161 },
+      "id": 234,
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "expr": "sum(lua_script_result_total{job=\"spring-boot-app\", script=\"remove_player\", result=\"0\"}) or vector(0)", "legendFormat": "Ghost HSET", "refId": "A" }
+      ],
+      "title": "Ghost HSET (Remove Not Found)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "pointSize": 5, "showPoints": "auto", "spanNulls": false },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 165 },
+      "id": 235,
+      "options": {
+        "legend": { "calcs": ["lastNotNull", "max", "sum"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        { "expr": "rate(lua_script_result_total{job=\"spring-boot-app\", script=\"claim_joincode\", result=\"0\"}[1m])", "legendFormat": "JoinCode Duplicate", "refId": "A" },
+        { "expr": "rate(lua_script_result_total{job=\"spring-boot-app\", script=\"enter_room\", result=\"-1\"}[1m])", "legendFormat": "Room Full", "refId": "B" },
+        { "expr": "rate(lua_script_result_total{job=\"spring-boot-app\", script=\"enter_room\", result=\"-2\"}[1m])", "legendFormat": "Duplicate Name", "refId": "C" },
+        { "expr": "rate(lua_script_result_total{job=\"spring-boot-app\", script=\"remove_player\", result=\"0\"}[1m])", "legendFormat": "Ghost HSET", "refId": "D" }
+      ],
+      "title": "Race Condition Timeline",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
   "schemaVersion": 39,
-  "tags": ["coffee-shout", "websocket", "jvm"],
+  "tags": ["coffee-shout", "websocket", "jvm", "redis", "lua", "sprint3"],
   "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timezone": "Asia/Seoul",
