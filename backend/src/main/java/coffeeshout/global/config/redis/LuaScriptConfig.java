@@ -7,41 +7,15 @@ import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
 
 /**
- * Lua 스크립트를 Spring DefaultRedisScript 빈으로 등록.
- * RedisTemplate.execute(script, keys, args) 호출 시 자동으로 EVALSHA + EVAL fallback 처리.
+ * 라이브러리로 이관되지 않은 단일-op Lua 스크립트만 빈으로 등록.
+ * create/enter/toggle/update_positions/remove_player 는 {@code RoomLuaCommands}로 이전됨.
  */
 @Configuration
-@org.springframework.context.annotation.Profile("!test")
 public class LuaScriptConfig {
 
     @Bean
     public RedisScript<Long> claimJoinCodeScript() {
         return loadScript("lua/claim_joincode.lua", Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> createRoomScript() {
-        return loadScript("lua/create_room.lua", Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> enterRoomScript() {
-        return loadScript("lua/enter_room.lua", Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> toggleReadyScript() {
-        return loadScript("lua/toggle_ready.lua", Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> removePlayerScript() {
-        return loadScript("lua/remove_player.lua", Long.class);
-    }
-
-    @Bean
-    public RedisScript<Long> updatePositionsScript() {
-        return loadScript("lua/update_positions.lua", Long.class);
     }
 
     private <T> RedisScript<T> loadScript(final String path, final Class<T> resultType) {

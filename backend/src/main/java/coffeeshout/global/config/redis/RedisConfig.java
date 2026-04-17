@@ -8,6 +8,9 @@ import io.lettuce.core.resource.ClientResources;
 import io.micrometer.core.instrument.MeterRegistry;
 import coffeeshout.global.messaging.PubSubSubscriber;
 import lombok.RequiredArgsConstructor;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,7 +26,6 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
 @RequiredArgsConstructor
-@org.springframework.context.annotation.Profile("!test")
 public class RedisConfig {
 
     private final RedisProperties redisProperties;
@@ -84,6 +86,14 @@ public class RedisConfig {
     @Bean
     public StringRedisTemplate stringRedisTemplate(final RedisConnectionFactory connectionFactory) {
         return new StringRedisTemplate(connectionFactory);
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClient() {
+        final Config config = new Config();
+        final String address = "redis://" + redisProperties.host() + ":" + redisProperties.port();
+        config.useSingleServer().setAddress(address);
+        return Redisson.create(config);
     }
 
     @Bean

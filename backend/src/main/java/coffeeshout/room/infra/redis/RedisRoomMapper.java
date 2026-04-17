@@ -3,9 +3,6 @@ package coffeeshout.room.infra.redis;
 import coffeeshout.room.domain.JoinCode;
 import coffeeshout.room.domain.Room;
 import coffeeshout.room.domain.RoomState;
-import coffeeshout.room.domain.menu.CustomMenu;
-import coffeeshout.room.domain.menu.MenuTemperature;
-import coffeeshout.room.domain.menu.SelectedMenu;
 import coffeeshout.room.domain.player.Player;
 import coffeeshout.room.domain.player.PlayerName;
 import coffeeshout.room.domain.player.PlayerType;
@@ -17,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,7 +22,6 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-@Profile("!test")
 @RequiredArgsConstructor
 public class RedisRoomMapper {
 
@@ -35,13 +30,14 @@ public class RedisRoomMapper {
     public Room toRoom(
             final JoinCode joinCode,
             final Map<Object, Object> meta,
-            final Map<Object, Object> playerDataMap
+            final Map<Object, Object> playerDataMap,
+            final Map<Object, Object> readyMap
     ) {
         final String hostName = (String) meta.get("hostName");
         final RoomState roomState = RoomState.valueOf((String) meta.getOrDefault("state", "READY"));
 
         final List<Player> players = playerDataMap.values().stream()
-                .map(json -> toPlayer(fromJson((String) json)))
+                .map(json -> toPlayer(fromJson((String) json), readyMap))
                 .toList();
 
         final Player host = players.stream()
@@ -71,16 +67,13 @@ public class RedisRoomMapper {
         }
     }
 
-    private Player toPlayer(final RedisPlayerData data) {
-        final SelectedMenu selectedMenu = new SelectedMenu(
-                new CustomMenu(data.menuName(), data.menuCategoryImageUrl()),
-                MenuTemperature.valueOf(data.temperature())
-        );
+    private Player toPlayer(final RedisPlayerData data, final Map<Object, Object> readyMap) {
+        final Object readyRaw = readyMap.get(data.playerName());
+        final boolean isReady = readyRaw != null && Boolean.parseBoolean(readyRaw.toString());
         return Player.ofStored(
                 new PlayerName(data.playerName()),
                 PlayerType.valueOf(data.playerType()),
-                selectedMenu,
-                data.isReady(),
+                isReady,
                 data.colorIndex(),
                 new Probability(data.probability())
         );
