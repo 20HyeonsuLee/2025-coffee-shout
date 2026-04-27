@@ -27,6 +27,14 @@ function connectWebSocket(context, events, done, playerName, joinCode) {
 
     let lastMessageTime = null;
     let messageCount = 0;
+    let roomTopicMessageCount = 0;
+
+    client.subscribe(`/topic/room/${joinCode}`, function (message) {
+      roomTopicMessageCount++;
+      if (roomTopicMessageCount === 1 || roomTopicMessageCount % 50 === 0) {
+        console.log(`[${joinCode}/${playerName}] room-topic messages: ${roomTopicMessageCount}`);
+      }
+    });
 
     client.subscribe(`/topic/room/${joinCode}/racing-game`, function (message) {
       const currentTime = Date.now();

@@ -1,5 +1,5 @@
 const { connectWebSocket } = require('./helpers/connect-websocket');
-const { sendReadyTrue } = require('./publish/ready');
+const { sendReadyTrue, sendReadyStorm } = require('./publish/ready');
 const { setup } = require('./helpers/set-up');
 const { sendUpdateMiniGames, sendStartMiniGame, sendTap, sendContinuousTaps, stopContinuousTaps } = require('./publish/mini-game');
 
@@ -7,6 +7,7 @@ const { sendUpdateMiniGames, sendStartMiniGame, sendTap, sendContinuousTaps, sto
 module.exports = {
   connectWebSocket,
   sendReadyTrue,
+  sendReadyStorm,
   sendUpdateMiniGames,
   sendStartMiniGame,
   sendTap,

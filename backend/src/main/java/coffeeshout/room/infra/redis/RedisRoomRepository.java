@@ -3,6 +3,7 @@ package coffeeshout.room.infra.redis;
 import coffeeshout.global.messaging.PubSubEnvelope;
 import coffeeshout.global.messaging.PubSubEnvelopeSerializer;
 import coffeeshout.global.metric.PubSubMetricService;
+import io.micrometer.observation.annotation.Observed;
 import coffeeshout.room.domain.JoinCode;
 import coffeeshout.room.domain.Room;
 import coffeeshout.room.domain.player.Player;
@@ -16,6 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -39,6 +41,7 @@ public class RedisRoomRepository implements RoomRepository {
     private static final String READY_KEY = "room:%s:ready";
     private static final String PLAYER_DATA_KEY = "room:%s:player_data";
     private static final String POSITIONS_KEY = "room:%s:positions";
+    private static final String VERSION_KEY = "room:%s:version";
     private static final String JOINCODE_KEY = "joincode:%s";
     private static final String CHANNEL = "coffeeshout:events";
     private static final int MAX_PLAYERS = 9;
@@ -77,6 +80,7 @@ public class RedisRoomRepository implements RoomRepository {
     }
 
     @Override
+    @Observed(name = "room.repo.findByJoinCode")
     public Optional<Room> findByJoinCode(final JoinCode joinCode) {
         final Map<Object, Object> meta = redisTemplate.opsForHash()
                 .entries(META_KEY.formatted(joinCode.getValue()));
@@ -116,12 +120,14 @@ public class RedisRoomRepository implements RoomRepository {
                 READY_KEY.formatted(code),
                 PLAYER_DATA_KEY.formatted(code),
                 POSITIONS_KEY.formatted(code),
+                VERSION_KEY.formatted(code),
                 JOINCODE_KEY.formatted(code)
         ));
         log.info("방 삭제 완료: joinCode={}", code);
     }
 
     @Override
+    @Observed(name = "room.repo.addPlayer")
     public void addPlayer(final JoinCode joinCode, final Player player) {
         final String code = joinCode.getValue();
         stringRedisTemplate.opsForSet().add(PLAYERS_KEY.formatted(code), player.getName().value());
@@ -131,6 +137,7 @@ public class RedisRoomRepository implements RoomRepository {
     }
 
     @Override
+    @Observed(name = "room.repo.updatePlayerReady")
     public void updatePlayerReady(final JoinCode joinCode, final PlayerName playerName, final boolean ready) {
         final String code = joinCode.getValue();
         redisTemplate.opsForHash().put(READY_KEY.formatted(code), playerName.value(), String.valueOf(ready));
@@ -138,6 +145,7 @@ public class RedisRoomRepository implements RoomRepository {
     }
 
     @Override
+    @Observed(name = "room.repo.removePlayer")
     public void removePlayer(final JoinCode joinCode, final PlayerName playerName) {
         final String code = joinCode.getValue();
         stringRedisTemplate.opsForSet().remove(PLAYERS_KEY.formatted(code), playerName.value());
@@ -197,16 +205,37 @@ public class RedisRoomRepository implements RoomRepository {
     }
 
     private void publish(final String eventType, final String joinCode, final Map<String, Object> payload) {
-        final String envelope = buildEnvelope(eventType, joinCode, payload);
+        final long version = nextVersion(joinCode);
+        final String eventId = UUID.randomUUID().toString();
+        final String envelope = buildEnvelope(eventId, eventType, joinCode, payload, version);
         stringRedisTemplate.convertAndSend(CHANNEL, envelope);
         pubSubMetric.recordPublish(eventType);
     }
 
-    private String buildEnvelope(final String eventType, final String joinCode, final Map<String, Object> payload) {
+    private long nextVersion(final String joinCode) {
+        final String versionKey = VERSION_KEY.formatted(joinCode);
+        final Long version = stringRedisTemplate.opsForValue().increment(versionKey);
+        if (version == null) {
+            throw new IllegalStateException("roomVersion 증가 실패: joinCode=" + joinCode);
+        }
+        stringRedisTemplate.expire(versionKey, ttl);
+        return version;
+    }
+
+    private String buildEnvelope(
+            final String eventId,
+            final String eventType,
+            final String joinCode,
+            final Map<String, Object> payload,
+            final long version
+    ) {
         try {
-            final String payloadJson = objectMapper.writeValueAsString(payload);
+            final Map<String, Object> versionedPayload = new LinkedHashMap<>(payload);
+            versionedPayload.put("version", version);
+            versionedPayload.put("eventId", eventId);
+            final String payloadJson = objectMapper.writeValueAsString(versionedPayload);
             return envelopeSerializer.toJson(new PubSubEnvelope(
-                    eventType, joinCode, payloadJson, System.currentTimeMillis(), selfInstanceId
+                    eventId, eventType, joinCode, payloadJson, version, System.currentTimeMillis(), selfInstanceId
             ));
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Envelope 직렬화 실패", e);

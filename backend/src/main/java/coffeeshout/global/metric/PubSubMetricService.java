@@ -37,9 +37,36 @@ public class PubSubMetricService {
                 .increment();
     }
 
+    public void recordStaleDrop(final String eventType) {
+        Counter.builder("pubsub.message.stale.drop.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordGapDetected(final String eventType) {
+        Counter.builder("pubsub.message.gap.detected.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordSnapshotResync(final String eventType, final long durationNanos) {
+        Counter.builder("room.snapshot.resync.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+        Timer.builder("room.snapshot.resync.duration")
+                .tag("eventType", eventType)
+                .publishPercentileHistogram()
+                .register(meterRegistry)
+                .record(durationNanos, TimeUnit.NANOSECONDS);
+    }
+
     public void recordPropagationDelay(final long publishedAtMillis, final long receivedAtMillis) {
         final long delayMs = receivedAtMillis - publishedAtMillis;
         Timer.builder("pubsub.propagation.delay")
+                .publishPercentileHistogram()
                 .register(meterRegistry)
                 .record(delayMs, TimeUnit.MILLISECONDS);
     }

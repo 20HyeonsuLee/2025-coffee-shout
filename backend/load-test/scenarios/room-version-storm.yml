@@ -1,0 +1,24 @@
+config:
+  target: "{{ $env.TARGET_HOST }}"
+  phases:
+    - duration: 1
+      arrivalCount: 1
+      name: "Room version storm"
+  processor: "../processor.js"
+  variables:
+    host: "{{ $env.TARGET_HOST }}"
+    menuId: 0
+    menuCustomName: "토맛토마토"
+    menuTemperature: "ICE"
+    roomCount: 20
+    guestCount: 7
+    readyStormRounds: 20
+    readyStormIntervalMs: 20
+
+scenarios:
+  - name: "20방 × 8명(guest 7명 ready) × 20회 ready storm"
+    beforeScenario: "setup"
+    flow:
+      - think: 2
+      - function: "sendReadyStorm"
+      - think: 10

@@ -1,0 +1,108 @@
+{
+  "aggregate": {
+    "counters": {
+      "vusers.created_by_name.20방 × 8명 × 20회 ready storm": 1,
+      "vusers.created": 1,
+      "vusers.failed": 0,
+      "vusers.completed": 1
+    },
+    "rates": {},
+    "firstCounterAt": 1777266636900,
+    "firstHistogramAt": 1777266651808,
+    "lastCounterAt": 1777266651808,
+    "lastHistogramAt": 1777266651808,
+    "firstMetricAt": 1777266636900,
+    "lastMetricAt": 1777266651808,
+    "period": 1777266650000,
+    "summaries": {
+      "vusers.session_length": {
+        "min": 14907.9,
+        "max": 14907.9,
+        "count": 1,
+        "mean": 14907.9,
+        "p50": 14917.2,
+        "median": 14917.2,
+        "p75": 14917.2,
+        "p90": 14917.2,
+        "p95": 14917.2,
+        "p99": 14917.2,
+        "p999": 14917.2
+      }
+    },
+    "histograms": {
+      "vusers.session_length": {
+        "min": 14907.9,
+        "max": 14907.9,
+        "count": 1,
+        "mean": 14907.9,
+        "p50": 14917.2,
+        "median": 14917.2,
+        "p75": 14917.2,
+        "p90": 14917.2,
+        "p95": 14917.2,
+        "p99": 14917.2,
+        "p999": 14917.2
+      }
+    }
+  },
+  "intermediate": [
+    {
+      "counters": {
+        "vusers.created_by_name.20방 × 8명 × 20회 ready storm": 1,
+        "vusers.created": 1
+      },
+      "rates": {},
+      "firstCounterAt": 1777266636900,
+      "lastCounterAt": 1777266636900,
+      "firstMetricAt": 1777266636900,
+      "lastMetricAt": 1777266636900,
+      "period": "1777266630000",
+      "summaries": {},
+      "histograms": {}
+    },
+    {
+      "counters": {
+        "vusers.failed": 0,
+        "vusers.completed": 1
+      },
+      "rates": {},
+      "firstCounterAt": 1777266651808,
+      "firstHistogramAt": 1777266651808,
+      "lastCounterAt": 1777266651808,
+      "lastHistogramAt": 1777266651808,
+      "firstMetricAt": 1777266651808,
+      "lastMetricAt": 1777266651808,
+      "period": "1777266650000",
+      "summaries": {
+        "vusers.session_length": {
+          "min": 14907.9,
+          "max": 14907.9,
+          "count": 1,
+          "mean": 14907.9,
+          "p50": 14917.2,
+          "median": 14917.2,
+          "p75": 14917.2,
+          "p90": 14917.2,
+          "p95": 14917.2,
+          "p99": 14917.2,
+          "p999": 14917.2
+        }
+      },
+      "histograms": {
+        "vusers.session_length": {
+          "min": 14907.9,
+          "max": 14907.9,
+          "count": 1,
+          "mean": 14907.9,
+          "p50": 14917.2,
+          "median": 14917.2,
+          "p75": 14917.2,
+          "p90": 14917.2,
+          "p95": 14917.2,
+          "p99": 14917.2,
+          "p999": 14917.2
+        }
+      }
+    }
+  ]
+}

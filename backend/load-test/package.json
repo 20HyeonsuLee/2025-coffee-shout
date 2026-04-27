@@ -6,7 +6,8 @@
   "scripts": {
     "test": "artillery run scenarios/baseline.yml",
     "test:ready": "artillery run scenarios/ready-toggle.yml",
-    "test:racing": "artillery run scenarios/racing-tap.yml"
+    "test:racing": "artillery run scenarios/racing-tap.yml",
+    "test:room-version": "artillery run scenarios/room-version-storm.yml"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.0.0",

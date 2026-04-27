@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Redisson RLock 기반 원자성이 동시 요청에서 올바르게 동작하는지 검증.
  * Testcontainers Redis 7.2 위에서 실행.
  */
-class LuaAtomicityConcurrencyTest extends ConcurrencyTestSupport {
+class DistributedLockConcurrencyTest extends ConcurrencyTestSupport {
 
     @Autowired
     private RedisJoinCodeRepository joinCodeRepository;
@@ -111,6 +111,43 @@ class LuaAtomicityConcurrencyTest extends ConcurrencyTestSupport {
 
         final Long playersCount = stringRedisTemplate.opsForSet().size("room:FULL:players");
         assertThat(playersCount).isEqualTo(9L);
+    }
+
+    @Test
+    @DisplayName("동시 입장에서 성공한 상태 변경만 roomVersion을 증가시킨다")
+    void roomVersion_동시_입장_성공_수만큼_증가() throws InterruptedException {
+        final JoinCode joinCode = new JoinCode("VRSS");
+        createRoomWithHost(joinCode, "host");
+
+        final int threadCount = 20;
+        final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        final CountDownLatch startGate = new CountDownLatch(1);
+        final CountDownLatch doneGate = new CountDownLatch(threadCount);
+        final AtomicInteger successCount = new AtomicInteger(0);
+
+        for (int i = 0; i < threadCount; i++) {
+            final String guestName = "guest-" + i;
+            executor.submit(() -> {
+                try {
+                    startGate.await();
+                    roomService.enterRoom(joinCode.getValue(), guestName);
+                    successCount.incrementAndGet();
+                } catch (InvalidStateException ignored) {
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception ignored) {
+                } finally {
+                    doneGate.countDown();
+                }
+            });
+        }
+        startGate.countDown();
+        doneGate.await(30, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertThat(successCount.get()).isEqualTo(8);
+        assertThat(stringRedisTemplate.opsForValue().get("room:VRSS:version"))
+                .isEqualTo(String.valueOf(1 + successCount.get()));
     }
 
     @Test
