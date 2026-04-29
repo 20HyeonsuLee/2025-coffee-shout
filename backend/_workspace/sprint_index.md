@@ -15,9 +15,9 @@
 |---|---|---|---|
 | 1 | 스케일 아웃 → Sticky Session | **DOC_ONLY** | `sprint_1/01_architect_design.md`, `feedback.md` |
 | 2 | Sticky Session 한계 → 폐기 | **DOC_ONLY** | `sprint_2/01_sticky_session_limits.md`, `feedback.md` |
-| 3 | 브로커 선택 → Redis SSOT + Pub/Sub + Lua | 진행 예정 | — |
-| 4 | 재접속 Thundering herd → Jitter + Coalescing | 대기 | — |
-| 5 | Pub/Sub 메시지 유실 → 시퀀스 + 풀 싱크 | 대기 | — |
+| 3 | Redis SSOT + Pub/Sub + roomVersion | **IMPLEMENTED_EVIDENCE** | `mission_room_version_consistency/implementation_report.md`, `portfolio_report.ko.md`, `load_test_repomap.md` |
+| 4 | Snapshot resync herd guard | **UNIT_VERIFIED** | `sprint_4/01_architect_design.md`, `02_implementation_report.md`, `03_metric_capture_plan.md`, `feedback.md` |
+| 5 | Pub/Sub silent loss / reconnect freshness | 대기 | `mission_room_version_consistency/mission_contract.md` |
 | 6 | 순서 역전 → 방 단위 액터 모델 | 대기 | — |
 | 7 | 분산 스케줄링 → Sorted Set + 폴링 | 대기 | — |
 | 8 | 중복 요청 → 멱등성 키 (Lua) | 대기 | — |
@@ -41,3 +41,23 @@ Sprint 3 architect 에이전트가 `_workspace/sprint_3/01_architect_design.md` 
 3. `sprint_2/01_sticky_session_limits.md` — 라우팅 층 해결책의 한계 확정
 
 설계 완료 후 사용자 승인 게이트 → Phase 2 구현으로 진입.
+
+## 현재 구현 체크포인트
+
+| Commit | 범위 | 요약 |
+|---|---|---|
+| `96b4fe7` | Sprint 3 | roomVersion 기반 subscriber stale/gap 방어, load-test evidence, Grafana dashboard |
+| `156a11c` | Evidence | before/after Grafana baseline, 포트폴리오 검증 문서, mission contract checkpoint |
+| `e545042` | Sprint 4 | snapshot resync single-flight/coalescing/cooldown/retry, herd metric, Grafana panel |
+
+### Sprint 4 범위 조정
+
+초기 Sprint 4 설계(`sprint_4/01_architect_design.md`)는 클라이언트 재접속 후 REST room-state 조회의 jitter/coalescing을 다뤘다. 실제 구현은 현재 코드 흐름에 맞춰 **서버 Pub/Sub gap recovery의 Redis snapshot read herd 완화**로 좁혔다.
+
+이 결정의 이유:
+
+- `roomVersion` 도입 후 가장 가까운 hot path가 subscriber gap recovery였다.
+- 클라이언트 stale drop/reconnect freshness는 아직 미구현이라 클라 중심 claim을 만들면 과장된다.
+- 서버 안에서 coalescing/cooldown/retry를 단위 테스트로 검증할 수 있고, Grafana metric으로 포트폴리오 evidence를 만들 수 있다.
+
+현재 Sprint 4는 `UNIT_VERIFIED` 상태다. 멀티 WAS 부하테스트와 Grafana 재캡처가 끝나면 `EVIDENCE_READY`로 올린다.
