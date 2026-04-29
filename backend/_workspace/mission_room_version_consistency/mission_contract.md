@@ -65,6 +65,16 @@
 - FAIL 시 다음 행동: `metric-evidence-capture` 계획을 보강한다.
 - Evidence 경로: `_workspace/mission_room_version_consistency/evidence/`
 
+### AC-6. Snapshot resync herd 완화
+
+- 사용자 가치: gap/reconnect/WAS restart 때 Redis snapshot read가 한 방에 몰려 hot key가 되는 위험을 줄인다.
+- 완료 상태: 서버 subscriber gap recovery에 room 단위 single-flight/coalescing, version-aware cooldown, jitter/backoff, bounded retry가 적용된다.
+- 검증 방법: `SnapshotResyncCoordinatorTest`와 Prometheus metric 확인.
+- PASS 조건: 같은 방/같은 version 동시 resync는 snapshot read 1회로 합쳐지고, 더 높은 version은 cooldown/coalescing 때문에 누락되지 않으며, retry/fail metric이 존재한다.
+- FAIL 조건: gap 1건마다 무조건 별도 Redis snapshot read를 수행하거나, 최신 version 요청을 cooldown으로 잘못 생략한다.
+- FAIL 시 다음 행동: coordinator의 version coverage 조건과 in-flight lifecycle을 재검토한다.
+- Evidence 경로: `_workspace/mission_room_version_consistency/evidence/`
+
 ## 4. Quality Gates
 
 - Build gate:
@@ -73,7 +83,7 @@
   - FAIL action: 컴파일 오류 수정
 
 - Test gate:
-  - command: `./gradlew test --tests coffeeshout.concurrency.DistributedLockConcurrencyTest --no-configuration-cache`
+  - command: `./gradlew test --tests coffeeshout.concurrency.DistributedLockConcurrencyTest --tests coffeeshout.global.messaging.PubSubSubscriberVersionTest --tests coffeeshout.global.messaging.SnapshotResyncCoordinatorTest --no-configuration-cache`
   - PASS: BUILD SUCCESSFUL
   - FAIL action: 동시성 invariant 회귀 수정
 

@@ -14,6 +14,7 @@ import coffeeshout.global.metric.PubSubMetricService;
 import coffeeshout.global.websocket.LoggingSimpMessagingTemplate;
 import coffeeshout.room.application.RoomService;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,18 @@ class PubSubSubscriberVersionTest {
 
     @BeforeEach
     void setUp() {
-        subscriber = new PubSubSubscriber(serializer, roomService, messagingTemplate, SELF_INSTANCE_ID, pubSubMetric);
+        final SnapshotResyncCoordinator snapshotResyncCoordinator = new SnapshotResyncCoordinator(
+                pubSubMetric,
+                new SnapshotResyncPolicy(Duration.ZERO, 1, Duration.ZERO, Duration.ZERO)
+        );
+        subscriber = new PubSubSubscriber(
+                serializer,
+                roomService,
+                messagingTemplate,
+                SELF_INSTANCE_ID,
+                pubSubMetric,
+                snapshotResyncCoordinator
+        );
     }
 
     @Test
@@ -102,6 +114,7 @@ class PubSubSubscriberVersionTest {
         then(messagingTemplate).should(times(2))
                 .convertAndSend(eq("/topic/room/" + JOIN_CODE), any());
         then(pubSubMetric).should().recordGapDetected("PLAYER_READY");
+        then(pubSubMetric).should().recordSnapshotRead("PLAYER_READY");
         then(pubSubMetric).should().recordSnapshotResync(eq("PLAYER_READY"), anyLong());
     }
 

@@ -143,6 +143,29 @@ TARGET_HOST=http://localhost:8000 npm run test:room-version -- --output ../_work
 - Version gap 17회가 관측됐고, snapshot resync도 17회 발생했다. 즉 gap을 감지하고 Redis SSOT 기반 full-state 복구가 실행됐다.
 - Stale/중복 drop은 이번 시나리오에서는 0회였지만, 해당 방어 로직은 단위 테스트에서 별도로 검증했다.
 
+## 서버 복구 경로 Hot Key 방어
+
+gap/reconnect/WAS restart가 한 방에 동시에 몰리면 모든 subscriber 요청이 Redis snapshot을 다시 읽으면서 `room:{joinCode}:*` hot key를 만들 수 있다. 이를 막기 위해 서버 subscriber의 gap recovery를 `SnapshotResyncCoordinator`로 분리했다.
+
+구현한 방어:
+
+- 방 단위 single-flight: 같은 `joinCode`의 resync가 진행 중이면 추가 요청은 기존 resync에 합류한다.
+- Coalescing: 같은 version 요청은 snapshot read를 1회로 줄인다.
+- 최신성 보호: coalescing 중 더 높은 version이 합류하면 snapshot을 한 번 더 읽어 최신 상태를 놓치지 않는다.
+- Version-aware cooldown: 이미 같은 version 이상을 최근 복구했다면 추가 snapshot read를 생략한다.
+- Jitter/backoff/retry: WAS restart/reconnect storm 때 모든 인스턴스가 같은 순간 Redis를 읽지 않도록 분산하고, 실패 시 제한된 횟수만 재시도한다.
+
+추가 관측 지표:
+
+| 지표 | 의미 |
+|---|---|
+| `room_snapshot_read_total` | 실제 Redis snapshot read 시도 횟수 |
+| `room_snapshot_resync_coalesced_total` | in-flight resync에 합류해 추가 read를 만들지 않은 횟수 |
+| `room_snapshot_resync_cooldown_skip_total` | 최근 복구 version으로 커버되어 read를 생략한 횟수 |
+| `room_snapshot_resync_retry_total` | snapshot read/broadcast 실패 후 재시도 횟수 |
+| `room_snapshot_resync_failed_total` | 제한된 retry 이후에도 실패한 횟수 |
+| `snapshot read / gap detected` | full sync 증폭률. 1보다 커지면 복구 경로가 Redis hot key를 만들 가능성이 커짐 |
+
 ## Grafana 증거
 
 대시보드는 한국어 라벨과 큰 stat panel 중심으로 구성했다.
@@ -157,6 +180,12 @@ TARGET_HOST=http://localhost:8000 npm run test:room-version -- --output ../_work
 - 정합성 방어 이벤트
 - 전파/복구 지연 시간
 - 이벤트 타입별 최종 카운터
+- Snapshot Read
+- Coalesced Resync
+- Cooldown Skip
+- Full Sync 증폭률
+- 복구 경로 보호 이벤트
+- Gap 대비 Snapshot Read
 
 스크린샷:
 
@@ -182,6 +211,11 @@ sum(pubsub_message_received_total{job="spring-boot-app", eventType="PLAYER_READY
 
 sum(pubsub_message_published_total{job="spring-boot-app"}) by (eventType)
 sum(pubsub_message_received_total{job="spring-boot-app"}) by (instance, eventType)
+
+sum(room_snapshot_read_total{job="spring-boot-app"}) or vector(0)
+sum(room_snapshot_resync_coalesced_total{job="spring-boot-app"}) or vector(0)
+sum(room_snapshot_resync_cooldown_skip_total{job="spring-boot-app"}) or vector(0)
+(sum(room_snapshot_read_total{job="spring-boot-app"}) or vector(0)) / clamp_min((sum(pubsub_message_gap_detected_total{job="spring-boot-app"}) or vector(0)), 1)
 
 histogram_quantile(0.95, sum(rate(pubsub_propagation_delay_seconds_bucket{job="spring-boot-app"}[5m])) by (le))
 sum(rate(room_snapshot_resync_duration_seconds_sum{job="spring-boot-app"}[5m]))
@@ -213,6 +247,7 @@ sum(rate(room_snapshot_resync_duration_seconds_count{job="spring-boot-app"}[5m])
 
 - 클라이언트 `version <= currentVersion` drop 로직은 아직 미구현이다. 현재 검증 범위는 서버 subscriber 방어와 snapshot resync까지다.
 - 최종 포트폴리오 캡처 전에는 부하 테스트를 다시 실행해 Grafana time window 안에 최신 spike가 남도록 해야 한다.
+- Snapshot resync herd 완화 지표는 단위 테스트와 dashboard wiring까지 완료했고, 실제 수치 claim은 Docker 기반 멀티 WAS 부하 테스트를 다시 실행한 뒤 `room_snapshot_read_total`, `room_snapshot_resync_coalesced_total`, `room_snapshot_resync_cooldown_skip_total`, `Full Sync 증폭률`을 캡처해야 한다.
 - 현재 수치는 로컬 멀티 WAS 환경 기준이므로, 제출용 문장에는 측정 환경을 함께 표기해야 한다.
 
 ## 최종 판정

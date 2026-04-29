@@ -63,6 +63,41 @@ public class PubSubMetricService {
                 .record(durationNanos, TimeUnit.NANOSECONDS);
     }
 
+    public void recordSnapshotRead(final String eventType) {
+        Counter.builder("room.snapshot.read.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordSnapshotResyncCoalesced(final String eventType) {
+        Counter.builder("room.snapshot.resync.coalesced.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordSnapshotResyncCooldownSkip(final String eventType) {
+        Counter.builder("room.snapshot.resync.cooldown.skip.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordSnapshotResyncRetry(final String eventType) {
+        Counter.builder("room.snapshot.resync.retry.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
+    public void recordSnapshotResyncFailed(final String eventType) {
+        Counter.builder("room.snapshot.resync.failed.total")
+                .tag("eventType", eventType)
+                .register(meterRegistry)
+                .increment();
+    }
+
     public void recordPropagationDelay(final long publishedAtMillis, final long receivedAtMillis) {
         final long delayMs = receivedAtMillis - publishedAtMillis;
         Timer.builder("pubsub.propagation.delay")

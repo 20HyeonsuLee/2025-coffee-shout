@@ -624,6 +624,432 @@
       ],
       "title": "최종 카운터: 발행 전체 / WAS별 수신",
       "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Gap 복구 과정에서 실제 Redis snapshot을 읽은 총 횟수입니다. coalescing/cooldown이 잘 작동하면 gap 수보다 낮거나 비슷하게 유지됩니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 23
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "expr": "sum(room_snapshot_read_total{job=\"spring-boot-app\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Snapshot Read",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "같은 방에서 이미 진행 중인 snapshot resync에 합쳐져 추가 Redis read를 만들지 않은 요청 수입니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 23
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "expr": "sum(room_snapshot_resync_coalesced_total{job=\"spring-boot-app\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Coalesced Resync",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "이미 같은 version 이상을 최근 복구해 Redis snapshot read를 생략한 요청 수입니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 23
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "expr": "sum(room_snapshot_resync_cooldown_skip_total{job=\"spring-boot-app\"}) or vector(0)",
+          "refId": "A"
+        }
+      ],
+      "title": "Cooldown Skip",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "실제 snapshot read / gap 감지 횟수입니다. 1보다 커지면 복구 경로가 Redis hot key를 만들 가능성이 커집니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 23
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "expr": "(sum(room_snapshot_read_total{job=\"spring-boot-app\"}) or vector(0)) / clamp_min((sum(pubsub_message_gap_detected_total{job=\"spring-boot-app\"}) or vector(0)), 1)",
+          "refId": "A"
+        }
+      ],
+      "title": "Full Sync 증폭률",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "single-flight, cooldown, retry/fail 이벤트를 함께 봅니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events/sec",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "expr": "sum(rate(room_snapshot_read_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "read {{eventType}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(room_snapshot_resync_coalesced_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "coalesced {{eventType}}",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(room_snapshot_resync_cooldown_skip_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "cooldown {{eventType}}",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(rate(room_snapshot_resync_retry_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "retry {{eventType}}",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(rate(room_snapshot_resync_failed_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "failed {{eventType}}",
+          "refId": "E"
+        }
+      ],
+      "title": "복구 경로 보호 이벤트",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "gap 감지량과 실제 Redis snapshot read량을 같은 축에서 비교합니다.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events/sec",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max",
+            "mean"
+          ],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.0",
+      "targets": [
+        {
+          "expr": "sum(rate(pubsub_message_gap_detected_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "gap {{eventType}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(room_snapshot_read_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "snapshot read {{eventType}}",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(room_snapshot_resync_total{job=\"spring-boot-app\"}[1m])) by (eventType)",
+          "legendFormat": "resync sent {{eventType}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Gap 대비 Snapshot Read",
+      "type": "timeseries"
     }
   ],
   "refresh": "5s",
@@ -633,7 +1059,8 @@
     "redis",
     "pubsub",
     "room-version",
-    "portfolio"
+    "portfolio",
+    "snapshot-herd"
   ],
   "templating": {
     "list": []
@@ -645,6 +1072,6 @@
   "timezone": "browser",
   "title": "Room Version 정합성 검증",
   "uid": "room-version-consistency",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }

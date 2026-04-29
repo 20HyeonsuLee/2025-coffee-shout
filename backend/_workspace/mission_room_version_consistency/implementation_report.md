@@ -13,6 +13,7 @@ Implemented the server-side room version recovery path.
 - Subscribers keep local `lastSeenVersion[joinCode]`.
 - `version <= lastSeenVersion` is dropped as stale/duplicate.
 - `version > lastSeenVersion + 1` is recorded as a gap and triggers Redis snapshot read + WebSocket full-state broadcast for room player-list events.
+- Gap recovery is protected by room-scoped single-flight/coalescing, version-aware resync cooldown, jitter, and bounded retry so concurrent recovery requests do not blindly multiply Redis snapshot reads.
 - Lua was not introduced.
 
 ## Code Changes
@@ -22,11 +23,13 @@ Implemented the server-side room version recovery path.
 | Envelope contract | `src/main/java/coffeeshout/global/messaging/PubSubEnvelope.java` | Added `eventId` and `version`. |
 | Redis SSOT version | `src/main/java/coffeeshout/room/infra/redis/RedisRoomRepository.java` | Added `room:%s:version`, `INCR`, TTL, delete cleanup, versioned payload/envelope. |
 | Subscriber recovery | `src/main/java/coffeeshout/global/messaging/PubSubSubscriber.java` | Added stale drop, gap detection, self-message version tracking, safe unknown event handling. |
-| Metrics | `src/main/java/coffeeshout/global/metric/PubSubMetricService.java` | Added stale/gap/resync counters and resync/propagation histogram timers. |
+| Snapshot herd guard | `src/main/java/coffeeshout/global/messaging/SnapshotResyncCoordinator.java` | Added room-scoped single-flight, coalescing, version-aware cooldown, jitter/backoff, and retry/fail metrics. |
+| Metrics | `src/main/java/coffeeshout/global/metric/PubSubMetricService.java` | Added stale/gap/resync counters, snapshot read/coalescing/cooldown/retry/fail counters, and resync/propagation timers. |
 | Unit test | `src/test/java/coffeeshout/global/messaging/PubSubSubscriberVersionTest.java` | Covers in-order, duplicate/stale, gap resync, self skip, unknown event type. |
+| Unit test | `src/test/java/coffeeshout/global/messaging/SnapshotResyncCoordinatorTest.java` | Covers same-room coalescing, higher-version safety reread, cooldown skip, cooldown bypass for newer version, retry. |
 | Concurrency test | `src/test/java/coffeeshout/concurrency/LuaAtomicityConcurrencyTest.java` | Added Redis roomVersion assertion under concurrent room entry. |
 | Load test | `load-test/scenarios/room-version-storm.yml` | Adds ready storm: 20 rooms x 8 players, 7 guests x 20 ready rounds. |
-| Grafana | `monitor/grafana/dashboards/room-version-consistency-dashboard.json` | Adds dashboard for publish/receive, stale drop, gap, resync, latency. |
+| Grafana | `monitor/grafana/dashboards/room-version-consistency-dashboard.json` | Adds dashboard for publish/receive, stale drop, gap, resync, latency, snapshot read amplification, coalescing, cooldown. |
 
 ## Metrics To Capture
 
@@ -36,6 +39,12 @@ sum(rate(pubsub_message_received_total[1m])) by (eventType)
 increase(pubsub_message_stale_drop_total[5m])
 increase(pubsub_message_gap_detected_total[5m])
 increase(room_snapshot_resync_total[5m])
+increase(room_snapshot_read_total[5m])
+increase(room_snapshot_resync_coalesced_total[5m])
+increase(room_snapshot_resync_cooldown_skip_total[5m])
+increase(room_snapshot_resync_retry_total[5m])
+increase(room_snapshot_resync_failed_total[5m])
+(sum(room_snapshot_read_total) or vector(0)) / clamp_min((sum(pubsub_message_gap_detected_total) or vector(0)), 1)
 histogram_quantile(0.95, sum(rate(pubsub_propagation_delay_seconds_bucket[5m])) by (le))
 histogram_quantile(0.95, sum(rate(room_snapshot_resync_duration_seconds_bucket[5m])) by (le))
 ```
@@ -46,12 +55,28 @@ Passed:
 
 ```bash
 ./gradlew test --tests coffeeshout.global.messaging.PubSubSubscriberVersionTest --tests coffeeshout.concurrency.DistributedLockConcurrencyTest --no-configuration-cache
+./gradlew test --tests coffeeshout.global.messaging.PubSubSubscriberVersionTest --tests coffeeshout.global.messaging.SnapshotResyncCoordinatorTest --no-configuration-cache
 ./gradlew test --no-configuration-cache
 node --check load-test/processor.js
 node --check load-test/publish/ready.js
 node --check load-test/helpers/connect-websocket.js
 node -e "JSON.parse(require('fs').readFileSync('monitor/grafana/dashboards/room-version-consistency-dashboard.json','utf8'))"
 ```
+
+Latest server herd patch verification on 2026-04-29:
+
+```bash
+./gradlew test --tests coffeeshout.global.messaging.PubSubSubscriberVersionTest --tests coffeeshout.global.messaging.SnapshotResyncCoordinatorTest --no-configuration-cache
+node -e "JSON.parse(require('fs').readFileSync('monitor/grafana/dashboards/room-version-consistency-dashboard.json','utf8'))"
+git diff --check -- <room-version files>
+```
+
+Result:
+
+- Messaging/resync unit tests: PASS.
+- Grafana dashboard JSON parse: PASS.
+- Whitespace check for touched files: PASS.
+- `DistributedLockConcurrencyTest`: BLOCKED in the current shell because Docker daemon is not reachable at `/Users/leehyeonsu/.docker/run/docker.sock`.
 
 ## Load Test Evidence
 

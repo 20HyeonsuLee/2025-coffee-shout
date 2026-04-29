@@ -39,6 +39,7 @@ public class PubSubSubscriber implements MessageListener {
     private final LoggingSimpMessagingTemplate messagingTemplate;
     private final @Qualifier("selfInstanceId") String selfInstanceId;
     private final PubSubMetricService pubSubMetric;
+    private final SnapshotResyncCoordinator snapshotResyncCoordinator;
     private final ConcurrentMap<String, Long> lastSeenVersion = new ConcurrentHashMap<>();
 
     @Override
@@ -73,18 +74,17 @@ public class PubSubSubscriber implements MessageListener {
 
         if (decision == VersionDecision.GAP) {
             pubSubMetric.recordGapDetected(envelope.eventType());
-            final long startNanos = System.nanoTime();
-            final BroadcastOutcome outcome = broadcast(envelope);
-            if (outcome == BroadcastOutcome.SENT) {
-                pubSubMetric.recordSnapshotResync(envelope.eventType(), System.nanoTime() - startNanos);
-            }
-            if (outcome != BroadcastOutcome.FAILED) {
+            final SnapshotBroadcastOutcome outcome = snapshotResyncCoordinator.resync(
+                    envelope,
+                    () -> broadcast(envelope)
+            );
+            if (outcome != SnapshotBroadcastOutcome.FAILED) {
                 markSeen(envelope);
             }
             return;
         }
 
-        if (broadcast(envelope) != BroadcastOutcome.FAILED) {
+        if (broadcast(envelope) != SnapshotBroadcastOutcome.FAILED) {
             markSeen(envelope);
         }
     }
@@ -110,18 +110,18 @@ public class PubSubSubscriber implements MessageListener {
         lastSeenVersion.merge(envelope.joinCode(), envelope.version(), Math::max);
     }
 
-    private BroadcastOutcome broadcast(final PubSubEnvelope envelope) {
+    private SnapshotBroadcastOutcome broadcast(final PubSubEnvelope envelope) {
         final Optional<RoomEventType> type = parseRoomEventType(envelope.eventType());
         if (type.isEmpty()) {
             log.debug("Pub/Sub 이벤트 로컬 브로드캐스트 생략: eventType={}", envelope.eventType());
-            return BroadcastOutcome.SKIPPED;
+            return SnapshotBroadcastOutcome.SKIPPED;
         }
 
         return switch (type.get()) {
             case PLAYER_LIST_UPDATE, PLAYER_READY, PLAYER_KICK -> broadcastPlayerList(envelope.joinCode());
             default -> {
                 log.debug("Pub/Sub 이벤트 로컬 브로드캐스트 생략: {}", type.get());
-                yield BroadcastOutcome.SKIPPED;
+                yield SnapshotBroadcastOutcome.SKIPPED;
             }
         };
     }
@@ -134,20 +134,20 @@ public class PubSubSubscriber implements MessageListener {
         }
     }
 
-    private BroadcastOutcome broadcastPlayerList(final String joinCode) {
+    private SnapshotBroadcastOutcome broadcastPlayerList(final String joinCode) {
         try {
             final List<Player> players = roomService.getPlayersInternal(joinCode);
             final List<PlayerResponse> responses = players.stream()
                     .map(PlayerResponse::from)
                     .toList();
             messagingTemplate.convertAndSend(ROOM_TOPIC_PREFIX + joinCode, WebSocketResponse.success(responses));
-            return BroadcastOutcome.SENT;
+            return SnapshotBroadcastOutcome.SENT;
         } catch (NotExistElementException e) {
             log.debug("원격 이벤트 브로드캐스트 생략 - 방 없음: joinCode={}", joinCode);
-            return BroadcastOutcome.SKIPPED;
+            return SnapshotBroadcastOutcome.SKIPPED;
         } catch (Exception e) {
             log.error("원격 이벤트 브로드캐스트 실패: joinCode={}", joinCode, e);
-            return BroadcastOutcome.FAILED;
+            return SnapshotBroadcastOutcome.FAILED;
         }
     }
 
@@ -157,9 +157,4 @@ public class PubSubSubscriber implements MessageListener {
         STALE_OR_DUPLICATE
     }
 
-    private enum BroadcastOutcome {
-        SENT,
-        SKIPPED,
-        FAILED
-    }
 }
