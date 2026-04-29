@@ -10,6 +10,16 @@ Redis를 room 상태의 SSOT로 두고 Redis Pub/Sub으로 WebSocket 메시지�
 
 Lua Script는 사용하지 않았고, 상태 변경 원자성은 분산락 흐름에 맡기면서 Redis SSOT + version 기반 subscriber 방어로 정리했다.
 
+## Before / After Grafana 증거
+
+Version 도입 전 baseline은 실행 가능한 pre-version 커밋 `9455450`에서 재현했다. 가장 가까운 직전 커밋 `9e210b2`는 Menu/QR 도메인 삭제 후 참조 정리가 덜 되어 Docker build가 실패했기 때문에, 실행 가능한 마지막 pre-version Grafana dashboard를 기준으로 삼았다.
+
+도입 전 Grafana는 Pub/Sub 발행/수신량과 self-skip 정도만 보여준다. 즉 `PLAYER_READY`가 발행되고 두 WAS에서 수신되는 현상은 관측되지만, 메시지 gap, stale/drop, snapshot resync 여부는 이 화면만으로 설명할 수 없다.
+
+![Version 도입 전 Pub/Sub Grafana 패널](evidence/before_version/before-version-pubsub-published-vs-received.png)
+
+도입 후 Grafana는 같은 부하 조건에서 `Version Gap 감지`, `Snapshot 재동기화`, `중복/역전 Drop`, `Pub/Sub Fan-out 배수`를 한 화면에서 확인하도록 구성했다. 특히 Ready 카운터는 publish를 전체 발행량으로 합산하고, receive를 WAS 인스턴스별 수신량으로 분리해 “발행보다 수신이 많은 이유”가 바로 보이도록 했다.
+
 ![Room Version 정합성 Grafana 대시보드](evidence/grafana_screenshots/room-version-dashboard-renderer.png)
 
 ## 채용 관점 핵심 어필
@@ -91,6 +101,25 @@ TARGET_HOST=http://localhost:8000 npm run test:room-version -- --output ../_work
 
 ## 측정 결과
 
+### Version 도입 전 baseline
+
+| 지표 | 결과 |
+|---|---:|
+| 기준 커밋 | `9455450` |
+| Artillery 시나리오 실패 | 0 |
+| `PLAYER_READY` 발행 | 2800 |
+| `PLAYER_READY` 수신 | 5600 |
+| Self-skip | 2960 |
+| app actuator 기준 `roomVersion/gap/resync/stale` 지표 | 없음 |
+
+해석:
+
+- 도입 전에도 Pub/Sub 전파량 자체는 측정할 수 있었다.
+- 하지만 메시지 순서 역전, gap, stale drop, snapshot resync를 설명하는 지표가 없어 “정합성을 방어했다”는 claim으로 연결하기 어렵다.
+- 이 한계가 `roomVersion`과 subscriber-side gap detection/resync metric을 추가한 이유다.
+
+### Version 도입 후 결과
+
 | 지표 | 결과 |
 |---|---:|
 | Redis `room:*:version` key 수 | 20 |
@@ -110,7 +139,7 @@ TARGET_HOST=http://localhost:8000 npm run test:room-version -- --output ../_work
 해석:
 
 - `roomVersion=148`은 `room 생성/입장 setup 8회 + guest 7명 * ready 변경 20회`와 일치한다.
-- 수신량이 발행량의 약 2배인 이유는 WAS 2대가 같은 Redis Pub/Sub channel을 구독하기 때문이다.
+- 수신량이 발행량의 약 2배인 이유는 WAS 2대가 같은 Redis Pub/Sub channel을 구독하기 때문이다. 개선된 Grafana 패널은 Ready publish 누적 카운터를 전체 합산으로, Ready receive 누적 카운터를 WAS 인스턴스별로 분리해 이 fan-out 구조를 직접 보여준다.
 - Version gap 17회가 관측됐고, snapshot resync도 17회 발생했다. 즉 gap을 감지하고 Redis SSOT 기반 full-state 복구가 실행됐다.
 - Stale/중복 drop은 이번 시나리오에서는 0회였지만, 해당 방어 로직은 단위 테스트에서 별도로 검증했다.
 
@@ -123,14 +152,16 @@ TARGET_HOST=http://localhost:8000 npm run test:room-version -- --output ../_work
 - 중복/역전 메시지 Drop
 - Version Gap 감지
 - Snapshot 재동기화
-- 멀티 WAS 전파 배수
-- Pub/Sub 발행/수신 처리량
+- Pub/Sub Fan-out 배수
+- Ready 카운터: 발행 전체 / WAS별 수신
 - 정합성 방어 이벤트
 - 전파/복구 지연 시간
 - 이벤트 타입별 최종 카운터
 
 스크린샷:
 
+- 도입 전 Pub/Sub panel: `_workspace/mission_room_version_consistency/evidence/before_version/before-version-pubsub-published-vs-received.png`
+- 도입 전 app actuator evidence: `_workspace/mission_room_version_consistency/evidence/before_version/before-version-actuator-metrics.txt`
 - `_workspace/mission_room_version_consistency/evidence/grafana_screenshots/room-version-dashboard-renderer.png`
 
 렌더링 방식:
@@ -146,8 +177,11 @@ sum(pubsub_message_stale_drop_total{job="spring-boot-app"}) or vector(0)
 sum(pubsub_message_gap_detected_total{job="spring-boot-app"}) or vector(0)
 sum(room_snapshot_resync_total{job="spring-boot-app"}) or vector(0)
 
-sum(rate(pubsub_message_published_total{job="spring-boot-app"}[1m])) by (eventType)
-sum(rate(pubsub_message_received_total{job="spring-boot-app"}[1m])) by (eventType)
+sum(pubsub_message_published_total{job="spring-boot-app", eventType="PLAYER_READY"})
+sum(pubsub_message_received_total{job="spring-boot-app", eventType="PLAYER_READY"}) by (instance)
+
+sum(pubsub_message_published_total{job="spring-boot-app"}) by (eventType)
+sum(pubsub_message_received_total{job="spring-boot-app"}) by (instance, eventType)
 
 histogram_quantile(0.95, sum(rate(pubsub_propagation_delay_seconds_bucket{job="spring-boot-app"}[5m])) by (le))
 sum(rate(room_snapshot_resync_duration_seconds_sum{job="spring-boot-app"}[5m]))

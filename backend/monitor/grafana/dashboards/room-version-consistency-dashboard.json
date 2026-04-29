@@ -201,7 +201,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "멀티 WAS에서 Pub/Sub 메시지가 각 인스턴스 subscriber로 전파되는지를 보기 위한 수신/발행 비율입니다.",
+      "description": "전체 subscriber 수신 합계 / 전체 publish 합계입니다. WAS 2대가 같은 Redis Pub/Sub channel을 구독하면 정상적으로 약 2.0에 가까워집니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -253,11 +253,11 @@
       "targets": [
         {
           "expr": "(sum(pubsub_message_received_total{job=\"spring-boot-app\"}) or vector(0)) / clamp_min((sum(pubsub_message_published_total{job=\"spring-boot-app\"}) or vector(0)), 1)",
-          "legendFormat": "수신/발행",
+          "legendFormat": "전체 수신 / 전체 발행",
           "refId": "A"
         }
       ],
-      "title": "멀티 WAS 전파 배수",
+      "title": "Pub/Sub Fan-out 배수",
       "type": "stat"
     },
     {
@@ -265,7 +265,7 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "이벤트 타입별 발행량과 subscriber 수신량을 같은 축에서 비교합니다.",
+      "description": "Ready 변경 누적 카운터입니다. Publish는 전체 합산으로, receive는 WAS 인스턴스별 subscriber 수신량으로 분리해 fan-out 구조를 보여줍니다.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -275,7 +275,7 @@
             "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "events/sec",
+            "axisLabel": "messages",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
@@ -313,7 +313,7 @@
               }
             ]
           },
-          "unit": "ops"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -342,37 +342,17 @@
       "pluginVersion": "12.0.0",
       "targets": [
         {
-          "expr": "sum(rate(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"PLAYER_READY\"}[1m]))",
-          "legendFormat": "발행 Ready 변경",
+          "expr": "sum(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"PLAYER_READY\"})",
+          "legendFormat": "발행 전체 Ready",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"PLAYER_READY\"}[1m]))",
-          "legendFormat": "수신 Ready 변경",
+          "expr": "sum(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"PLAYER_READY\"}) by (instance)",
+          "legendFormat": "수신 {{instance}} Ready",
           "refId": "B"
-        },
-        {
-          "expr": "sum(rate(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"PLAYER_LIST_UPDATE\"}[1m]))",
-          "legendFormat": "발행 목록",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(rate(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"PLAYER_LIST_UPDATE\"}[1m]))",
-          "legendFormat": "수신 목록",
-          "refId": "D"
-        },
-        {
-          "expr": "sum(rate(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"ROOM_CREATE\"}[1m]))",
-          "legendFormat": "발행 방",
-          "refId": "E"
-        },
-        {
-          "expr": "sum(rate(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"ROOM_CREATE\"}[1m]))",
-          "legendFormat": "수신 방",
-          "refId": "F"
         }
       ],
-      "title": "Pub/Sub 발행/수신 처리량",
+      "title": "Ready 카운터: 발행 전체 / WAS별 수신",
       "type": "timeseries"
     },
     {
@@ -632,37 +612,17 @@
       "pluginVersion": "12.0.0",
       "targets": [
         {
-          "expr": "sum(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"PLAYER_READY\"})",
-          "legendFormat": "발행 Ready 변경",
+          "expr": "sum(pubsub_message_published_total{job=\"spring-boot-app\"}) by (eventType)",
+          "legendFormat": "발행 전체 {{eventType}}",
           "refId": "A"
         },
         {
-          "expr": "sum(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"PLAYER_READY\"})",
-          "legendFormat": "수신 Ready 변경",
+          "expr": "sum(pubsub_message_received_total{job=\"spring-boot-app\"}) by (instance, eventType)",
+          "legendFormat": "수신 {{instance}} {{eventType}}",
           "refId": "B"
-        },
-        {
-          "expr": "sum(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"PLAYER_LIST_UPDATE\"})",
-          "legendFormat": "발행 목록",
-          "refId": "C"
-        },
-        {
-          "expr": "sum(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"PLAYER_LIST_UPDATE\"})",
-          "legendFormat": "수신 목록",
-          "refId": "D"
-        },
-        {
-          "expr": "sum(pubsub_message_published_total{job=\"spring-boot-app\", eventType=\"ROOM_CREATE\"})",
-          "legendFormat": "발행 방",
-          "refId": "E"
-        },
-        {
-          "expr": "sum(pubsub_message_received_total{job=\"spring-boot-app\", eventType=\"ROOM_CREATE\"})",
-          "legendFormat": "수신 방",
-          "refId": "F"
         }
       ],
-      "title": "이벤트 타입별 최종 카운터",
+      "title": "최종 카운터: 발행 전체 / WAS별 수신",
       "type": "bargauge"
     }
   ],
