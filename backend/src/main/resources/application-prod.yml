@@ -12,10 +12,6 @@ spring:
 redisson:
   enabled: true
 
-room:
-  qr:
-    prefix: "https://coffee-shout.com/join/"
-
 websocket:
   docs:
     enabled: false

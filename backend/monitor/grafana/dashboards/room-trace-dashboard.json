@@ -1,0 +1,250 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "title": "Room Trace & Latency Breakdown",
+  "uid": "room-trace",
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Trace Search",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 1 },
+      "id": 2,
+      "targets": [
+        {
+          "queryType": "traceqlSearch",
+          "filters": [
+            { "id": "service-name", "tag": "service.name", "operator": "=", "value": ["coffee-shout"], "scope": "resource" },
+            { "id": "span-name", "tag": "name", "operator": "=~", "value": ["room.*"], "scope": "span" },
+            { "id": "min-duration", "tag": "duration", "operator": ">", "value": ["5ms"] }
+          ],
+          "limit": 20,
+          "refId": "A"
+        }
+      ],
+      "title": "Room 관련 Trace (>5ms)",
+      "type": "traces"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 11 },
+      "id": 10,
+      "title": "Ready Toggle Latency Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "stacking": { "mode": "normal" } },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "id": 11,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(distributed_lock_acquire_seconds_bucket{job=\"spring-boot-app\",method=\"changePlayerReadyStateInternal\"}[1m]))",
+          "legendFormat": "Lock Acquire p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(room_repo_findByJoinCode_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "findByJoinCode p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(room_repo_updatePlayerReady_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "updatePlayerReady p95",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(distributed_lock_hold_seconds_bucket{job=\"spring-boot-app\",method=\"changePlayerReadyStateInternal\"}[1m]))",
+          "legendFormat": "Lock Hold Total p95",
+          "refId": "D"
+        }
+      ],
+      "title": "changeReady — 구간별 Latency (stacked p95)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2, "stacking": { "mode": "normal" } },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "id": 12,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(distributed_lock_acquire_seconds_bucket{job=\"spring-boot-app\",method=\"enterRoom\"}[1m]))",
+          "legendFormat": "Lock Acquire p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(room_repo_findByJoinCode_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "findByJoinCode p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(room_repo_addPlayer_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "addPlayer p95",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(distributed_lock_hold_seconds_bucket{job=\"spring-boot-app\",method=\"enterRoom\"}[1m]))",
+          "legendFormat": "Lock Hold Total p95",
+          "refId": "D"
+        }
+      ],
+      "title": "enterRoom — 구간별 Latency (stacked p95)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
+      "id": 20,
+      "title": "Lock Contention",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "id": 21,
+      "options": {
+        "legend": { "calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.5, rate(distributed_lock_acquire_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "p50 {{method}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(distributed_lock_acquire_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "p95 {{method}}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(distributed_lock_acquire_seconds_bucket{job=\"spring-boot-app\"}[1m]))",
+          "legendFormat": "p99 {{method}}",
+          "refId": "C"
+        }
+      ],
+      "title": "Lock Acquire Latency (contention 지표)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "lineWidth": 1 },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "id": 22,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(distributed_lock_acquire_seconds_count{job=\"spring-boot-app\"}[1m])) by (method)",
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Lock Acquire Rate (ops/s by method)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "id": 30,
+      "title": "Redis Command Detail",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "id": 31,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(lettuce_command_completion_seconds_bucket{job=\"spring-boot-app\"}[1m])) by (command, le))",
+          "legendFormat": "{{command}} p95",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Command Latency p95 (all commands)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
+          "unit": "ops"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "id": 32,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(lettuce_command_completion_seconds_count{job=\"spring-boot-app\"}[1m])) by (command)",
+          "legendFormat": "{{command}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Redis Command Throughput (ops/s)",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 39,
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "templating": { "list": [] }
+}

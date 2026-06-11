@@ -14,8 +14,6 @@ import lombok.Getter;
 @Getter
 public class Players {
 
-    private static final Random RANDOM = new Random();
-
     private final List<Player> players;
     private final ColorUsage colorUsage;
 

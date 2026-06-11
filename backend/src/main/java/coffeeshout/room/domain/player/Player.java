@@ -1,6 +1,5 @@
 package coffeeshout.room.domain.player;
 
-import coffeeshout.room.domain.menu.SelectedMenu;
 import coffeeshout.room.domain.roulette.Probability;
 import java.util.Objects;
 import lombok.Getter;
@@ -10,7 +9,6 @@ public class Player {
 
     private final PlayerName name;
     private PlayerType playerType;
-    private SelectedMenu selectedMenu;
     private Boolean isReady;
     private Integer colorIndex;
     private Probability probability;
@@ -18,43 +16,33 @@ public class Player {
     private Player(
             PlayerName name,
             PlayerType playerType,
-            SelectedMenu selectedMenu,
             Boolean isReady,
             Integer colorIndex,
             Probability probability
     ) {
         this.name = name;
         this.playerType = playerType;
-        this.selectedMenu = selectedMenu;
         this.isReady = isReady;
         this.colorIndex = colorIndex;
         this.probability = probability;
     }
 
-    public static Player createHost(PlayerName name, SelectedMenu selectedMenu) {
-        return new Player(name, PlayerType.HOST, selectedMenu, true, null, null);
+    public static Player createHost(PlayerName name) {
+        return new Player(name, PlayerType.HOST, true, null, null);
     }
 
-    public static Player createGuest(PlayerName name, SelectedMenu selectedMenu) {
-        return new Player(name, PlayerType.GUEST, selectedMenu, false, null, null);
+    public static Player createGuest(PlayerName name) {
+        return new Player(name, PlayerType.GUEST, false, null, null);
     }
 
-    /**
-     * 저장소에서 읽어 온 값으로 Player를 복원하는 팩터리.
-     */
     public static Player ofStored(
             final PlayerName name,
             final PlayerType playerType,
-            final SelectedMenu selectedMenu,
             final Boolean isReady,
             final Integer colorIndex,
             final Probability probability
     ) {
-        return new Player(name, playerType, selectedMenu, isReady, colorIndex, probability);
-    }
-
-    public void selectMenu(SelectedMenu selectedMenu) {
-        this.selectedMenu = selectedMenu;
+        return new Player(name, playerType, isReady, colorIndex, probability);
     }
 
     public boolean sameName(PlayerName playerName) {

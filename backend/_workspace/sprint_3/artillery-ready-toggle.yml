@@ -1,0 +1,57 @@
+config:
+  target: "http://localhost:8080"
+  processor: "./artillery-functions.js"
+  phases:
+    - name: "ramp-up"
+      duration: "{{ $processEnvironment.RAMP_DURATION | default 10 }}"
+      arrivalRate: 1
+      rampTo: "{{ $processEnvironment.RPS | default 50 }}"
+    - name: "sustained"
+      duration: "{{ $processEnvironment.TEST_DURATION | default 30 }}"
+      arrivalRate: "{{ $processEnvironment.RPS | default 50 }}"
+  variables:
+    joinCode: "LOAD"
+    playerCount: 8
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+before:
+  flow:
+    # 방 생성
+    - post:
+        url: "/rooms"
+        json:
+          playerName: "host"
+        capture:
+          - json: "$.joinCode"
+            as: "joinCode"
+    # 게스트 8명 입장
+    - loop:
+        - post:
+            url: "/rooms/{{ joinCode }}"
+            json:
+              playerName: "guest-{{ $loopCount }}"
+        count: 8
+
+scenarios:
+  - name: "ready-toggle"
+    flow:
+      # 랜덤 게스트가 ready 토글
+      - function: "randomGuest"
+      - post:
+          url: "/rooms/{{ joinCode }}/ready?playerName={{ guestName }}&isReady=true"
+          name: "ready-on"
+      - think: 0.05
+      - post:
+          url: "/rooms/{{ joinCode }}/ready?playerName={{ guestName }}&isReady=false"
+          name: "ready-off"
+
+# 사용법:
+# RPS=100 TEST_DURATION=60 RAMP_DURATION=10 npx artillery run artillery-ready-toggle.yml
+#
+# 또는 기본값(50 RPS, 30초):
+# npx artillery run artillery-ready-toggle.yml

@@ -7,8 +7,6 @@ import coffeeshout.global.exception.custom.InvalidStateException;
 import coffeeshout.global.exception.custom.NotExistElementException;
 import coffeeshout.global.exception.custom.QRCodeGenerationException;
 import coffeeshout.global.exception.custom.StorageServiceException;
-import coffeeshout.room.domain.RoomErrorCode;
-import coffeeshout.room.infra.redis.RoomLuaException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
@@ -88,24 +86,6 @@ public class RestExceptionHandler {
     ) {
         logWarning(exception, request);
         return getProblemDetail(HttpStatus.NOT_FOUND, exception, exception.getErrorCode());
-    }
-
-    @ExceptionHandler(RoomLuaException.class)
-    public ProblemDetail handleRoomLuaException(
-            RoomLuaException exception,
-            HttpServletRequest request
-    ) {
-        logWarning(exception, request);
-        return switch (exception.kind()) {
-            case ROOM_NOT_FOUND, ROOM_ALREADY_EXISTS, PLAYER_NOT_FOUND ->
-                    getProblemDetail(HttpStatus.NOT_FOUND, exception, GlobalErrorCode.NOT_EXIST);
-            case ROOM_NOT_READY ->
-                    getProblemDetail(HttpStatus.CONFLICT, exception, RoomErrorCode.ROOM_NOT_READY_TO_JOIN);
-            case ROOM_FULL ->
-                    getProblemDetail(HttpStatus.CONFLICT, exception, RoomErrorCode.ROOM_FULL);
-            case DUPLICATE_NAME ->
-                    getProblemDetail(HttpStatus.CONFLICT, exception, RoomErrorCode.DUPLICATE_PLAYER_NAME);
-        };
     }
 
     @ExceptionHandler(QRCodeGenerationException.class)
@@ -212,4 +192,3 @@ public class RestExceptionHandler {
         log.warn(logMessage, e);
     }
 }
-

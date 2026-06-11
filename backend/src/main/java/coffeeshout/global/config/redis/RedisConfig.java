@@ -5,7 +5,9 @@ import io.lettuce.core.api.StatefulConnection;
 import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
 import io.lettuce.core.metrics.MicrometerOptions;
 import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.tracing.MicrometerTracing;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
 import coffeeshout.global.messaging.PubSubSubscriber;
 import lombok.RequiredArgsConstructor;
 import org.redisson.Redisson;
@@ -31,7 +33,10 @@ public class RedisConfig {
     private final RedisProperties redisProperties;
 
     @Bean(destroyMethod = "shutdown")
-    public ClientResources lettuceClientResources(final MeterRegistry meterRegistry) {
+    public ClientResources lettuceClientResources(
+            final MeterRegistry meterRegistry,
+            final ObservationRegistry observationRegistry
+    ) {
         final MicrometerOptions options = MicrometerOptions.builder()
                 .enable()
                 .histogram(true)
@@ -39,6 +44,7 @@ public class RedisConfig {
 
         return ClientResources.builder()
                 .commandLatencyRecorder(new MicrometerCommandLatencyRecorder(meterRegistry, options))
+                .tracing(new MicrometerTracing(observationRegistry, "redis"))
                 .build();
     }
 

@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
  * Pub/Sub 자기 메시지 필터에서 사용한다.
  */
 @Configuration
-@org.springframework.context.annotation.Profile("!test")
 public class InstanceIdConfig {
 
     @Bean(name = "selfInstanceId")

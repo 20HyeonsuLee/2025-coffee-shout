@@ -7,6 +7,7 @@ import coffeeshout.room.domain.event.PlayerReadyEvent;
 import coffeeshout.room.domain.event.RoomEventType;
 import coffeeshout.room.domain.player.Player;
 import coffeeshout.room.ui.response.PlayerResponse;
+import io.micrometer.observation.annotation.Observed;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,7 @@ public class PlayerReadyEventHandler implements RoomEventHandler<PlayerReadyEven
     private final LoggingSimpMessagingTemplate messagingTemplate;
 
     @Override
+    @Observed(name = "room.event.playerReady")
     public void handle(PlayerReadyEvent event) {
         try {
             log.info("플레이어 ready 이벤트 수신: eventId={}, joinCode={}, playerName={}, isReady={}",

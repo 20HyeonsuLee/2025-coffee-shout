@@ -42,7 +42,7 @@ public class RoomRestController implements RoomApi {
 
     @PostMapping
     public ResponseEntity<RoomCreateResponse> createRoom(@Valid @RequestBody RoomEnterRequest request) {
-        final Room room = roomService.createRoom(request.playerName(), request.menu());
+        final Room room = roomService.createRoom(request.playerName());
 
         return ResponseEntity.ok(RoomCreateResponse.from(room));
     }
@@ -52,7 +52,7 @@ public class RoomRestController implements RoomApi {
             @PathVariable String joinCode,
             @Valid @RequestBody RoomEnterRequest request
     ) {
-        final Room room = roomService.enterRoom(joinCode, request.playerName(), request.menu());
+        final Room room = roomService.enterRoom(joinCode, request.playerName());
         return ResponseEntity.ok(RoomEnterResponse.from(room));
     }
 
@@ -92,6 +92,16 @@ public class RoomRestController implements RoomApi {
         final List<MiniGameType> result = roomService.getSelectedMiniGames(joinCode);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{joinCode}/ready")
+    public ResponseEntity<Void> toggleReady(
+            @PathVariable String joinCode,
+            @RequestParam String playerName,
+            @RequestParam Boolean isReady
+    ) {
+        roomService.changePlayerReadyState(joinCode, playerName, isReady);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{joinCode}/players/{playerName}")

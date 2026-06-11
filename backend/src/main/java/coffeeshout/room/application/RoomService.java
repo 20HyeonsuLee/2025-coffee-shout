@@ -1,5 +1,7 @@
 package coffeeshout.room.application;
 
+import coffeeshout.global.lock.DistributedLock;
+import io.micrometer.observation.annotation.Observed;
 import coffeeshout.minigame.domain.MiniGameResult;
 import coffeeshout.minigame.domain.MiniGameScore;
 import coffeeshout.minigame.domain.MiniGameType;
@@ -23,55 +25,27 @@ import coffeeshout.room.ui.response.ProbabilityResponse;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class RoomService {
-
-    private static final long LOCK_LEASE_SECONDS = 5;
-    private static final String LOCK_PREFIX = "lock:room:";
 
     private final RoomQueryService roomQueryService;
     private final RoomCommandService roomCommandService;
     private final JoinCodeGenerator joinCodeGenerator;
     private final ApplicationEventPublisher roomEventPublisher;
     private final RoomJpaRepository roomJpaRepository;
-    private final RedissonClient redissonClient;
-
-    public RoomService(
-            final RoomQueryService roomQueryService,
-            final RoomCommandService roomCommandService,
-            final JoinCodeGenerator joinCodeGenerator,
-            final ApplicationEventPublisher roomEventPublisher,
-            final RoomJpaRepository roomJpaRepository,
-            final RedissonClient redissonClient
-    ) {
-        this.roomQueryService = roomQueryService;
-        this.roomCommandService = roomCommandService;
-        this.joinCodeGenerator = joinCodeGenerator;
-        this.roomEventPublisher = roomEventPublisher;
-        this.roomJpaRepository = roomJpaRepository;
-        this.redissonClient = redissonClient;
-    }
 
     @Transactional
     public Room createRoom(String hostName) {
         final JoinCode joinCode = joinCodeGenerator.generate();
-
-        final Room room;
-        final RLock lock = acquireLock(joinCode.getValue());
-        try {
-            room = roomCommandService.saveIfAbsentRoom(joinCode, new PlayerName(hostName));
-        } finally {
-            lock.unlock();
-        }
+        final Room room = roomCommandService.saveIfAbsentRoom(joinCode, new PlayerName(hostName));
 
         final RoomCreateEvent event = new RoomCreateEvent(hostName, joinCode.getValue());
         roomEventPublisher.publishEvent(event);
@@ -80,6 +54,8 @@ public class RoomService {
         return room;
     }
 
+    @Observed(name = "room.changeReady")
+    @DistributedLock(key = "room:#{#joinCode}")
     public List<Player> changePlayerReadyState(String joinCode, String playerName, Boolean isReady) {
         return changePlayerReadyStateInternal(joinCode, playerName, isReady);
     }
@@ -104,53 +80,44 @@ public class RoomService {
         roomJpaRepository.save(roomEntity);
     }
 
+    @Observed(name = "room.enterRoom")
+    @DistributedLock(key = "room:#{#joinCode}")
     public Room enterRoom(String joinCode, String guestName) {
-        final RLock lock = acquireLock(joinCode);
-        try {
-            return roomCommandService.joinGuest(new JoinCode(joinCode), new PlayerName(guestName));
-        } finally {
-            lock.unlock();
-        }
+        return roomCommandService.joinGuest(new JoinCode(joinCode), new PlayerName(guestName));
     }
 
+    @Observed(name = "room.changeReady")
+    @DistributedLock(key = "room:#{#joinCode}")
     public List<Player> changePlayerReadyStateInternal(String joinCode, String playerName, Boolean isReady) {
-        final RLock lock = acquireLock(joinCode);
-        try {
-            final Room room = roomQueryService.getByJoinCode(new JoinCode(joinCode));
-            final Player player = room.findPlayer(new PlayerName(playerName));
+        final Room room = roomQueryService.getByJoinCode(new JoinCode(joinCode));
+        final Player player = room.findPlayer(new PlayerName(playerName));
 
-            if (player.getPlayerType() == PlayerType.HOST) {
-                return room.getPlayers();
-            }
-
-            player.updateReadyState(isReady);
-            roomCommandService.updatePlayerReady(new JoinCode(joinCode), new PlayerName(playerName), isReady);
+        if (player.getPlayerType() == PlayerType.HOST) {
             return room.getPlayers();
-        } finally {
-            lock.unlock();
         }
+
+        player.updateReadyState(isReady);
+        roomCommandService.updatePlayerReady(new JoinCode(joinCode), new PlayerName(playerName), isReady);
+        return room.getPlayers();
     }
 
+    @Observed(name = "room.updateMiniGames")
+    @DistributedLock(key = "room:#{#joinCode}")
     public List<MiniGameType> updateMiniGamesInternal(String joinCode, String hostName,
                                                       List<MiniGameType> miniGameTypes) {
-        final RLock lock = acquireLock(joinCode);
-        try {
-            final Room room = roomQueryService.getByJoinCode(new JoinCode(joinCode));
-            room.clearMiniGames();
+        final Room room = roomQueryService.getByJoinCode(new JoinCode(joinCode));
+        room.clearMiniGames();
 
-            miniGameTypes.forEach(miniGameType -> {
-                final Playable miniGame = miniGameType.createMiniGame(joinCode);
-                room.addMiniGame(new PlayerName(hostName), miniGame);
-            });
+        miniGameTypes.forEach(miniGameType -> {
+            final Playable miniGame = miniGameType.createMiniGame(joinCode);
+            room.addMiniGame(new PlayerName(hostName), miniGame);
+        });
 
-            roomCommandService.save(room);
+        roomCommandService.save(room);
 
-            return room.getAllMiniGame().stream()
-                    .map(Playable::getMiniGameType)
-                    .toList();
-        } finally {
-            lock.unlock();
-        }
+        return room.getAllMiniGame().stream()
+                .map(Playable::getMiniGameType)
+                .toList();
     }
 
     public List<Player> getAllPlayers(String joinCode) {
@@ -158,6 +125,8 @@ public class RoomService {
         return room.getPlayers();
     }
 
+    @Observed(name = "room.updateMiniGames")
+    @DistributedLock(key = "room:#{#joinCode}")
     public List<MiniGameType> updateMiniGames(String joinCode, String hostName, List<MiniGameType> miniGameTypes) {
         return updateMiniGamesInternal(joinCode, hostName, miniGameTypes);
     }
@@ -199,25 +168,22 @@ public class RoomService {
         return room.getSelectedMiniGameTypes();
     }
 
+    @Observed(name = "room.removePlayer")
+    @DistributedLock(key = "room:#{#joinCode}")
     public boolean removePlayer(String joinCode, String playerName) {
-        final RLock lock = acquireLock(joinCode);
-        try {
-            final JoinCode code = new JoinCode(joinCode);
-            final Room room = roomQueryService.getByJoinCode(code);
-            final PlayerName name = new PlayerName(playerName);
+        final JoinCode code = new JoinCode(joinCode);
+        final Room room = roomQueryService.getByJoinCode(code);
+        final PlayerName name = new PlayerName(playerName);
 
-            final boolean isRemoved = room.removePlayer(name);
-            if (!isRemoved) {
-                return false;
-            }
-            roomCommandService.removePlayer(code, name);
-            if (room.isEmpty()) {
-                roomCommandService.delete(code);
-            }
-            return true;
-        } finally {
-            lock.unlock();
+        final boolean isRemoved = room.removePlayer(name);
+        if (!isRemoved) {
+            return false;
         }
+        roomCommandService.removePlayer(code, name);
+        if (room.isEmpty()) {
+            roomCommandService.delete(code);
+        }
+        return true;
     }
 
     public boolean isReadyState(String joinCode) {
@@ -248,11 +214,5 @@ public class RoomService {
     public List<Playable> getRemainingMiniGames(String joinCode) {
         final Room room = roomQueryService.getByJoinCode(new JoinCode(joinCode));
         return room.getMiniGames().stream().toList();
-    }
-
-    private RLock acquireLock(final String joinCode) {
-        final RLock lock = redissonClient.getLock(LOCK_PREFIX + joinCode);
-        lock.lock(LOCK_LEASE_SECONDS, TimeUnit.SECONDS);
-        return lock;
     }
 }

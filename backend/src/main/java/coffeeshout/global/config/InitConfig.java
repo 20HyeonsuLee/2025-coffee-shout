@@ -1,35 +1,11 @@
 package coffeeshout.global.config;
 
-import coffeeshout.room.application.DataInitializer;
-import coffeeshout.room.application.MenuCategoryInitializer;
-import coffeeshout.room.application.MenuInitializer;
-import coffeeshout.room.domain.service.MenuCategoryCommandService;
-import coffeeshout.room.domain.service.MenuCategoryQueryService;
-import coffeeshout.room.domain.service.MenuCommandService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * 데이터 초기화 설정. 현재는 Menu/MenuCategory 제거로 빈 상태.
+ * 추후 초기화 로직이 필요하면 여기에 등록한다.
+ */
 @Configuration
-@RequiredArgsConstructor
 public class InitConfig {
-
-    private final MenuCommandService menuCommandService;
-    private final MenuCategoryCommandService menuCategoryCommandService;
-    private final MenuCategoryQueryService menuCategoryQueryService;
-
-    @Bean
-    public MenuInitializer menuInitializer() {
-        return new MenuInitializer(menuCommandService, menuCategoryQueryService);
-    }
-
-    @Bean
-    public MenuCategoryInitializer menuCategoryInitializer() {
-        return new MenuCategoryInitializer(menuCategoryCommandService);
-    }
-
-    @Bean
-    public DataInitializer dataInitializer(MenuInitializer menuInitializer, MenuCategoryInitializer menuCategoryInitializer) {
-        return new DataInitializer(menuInitializer, menuCategoryInitializer);
-    }
 }

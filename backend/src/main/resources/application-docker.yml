@@ -30,14 +30,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: "health,info,metrics,prometheus"
+        include: "health,info,metrics,prometheus,tracing"
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://tempo:4318/v1/traces
 
 redisson:
   enabled: false
-
-room:
-  qr:
-    prefix: http://localhost:8080/join/
 
 logging:
   level:

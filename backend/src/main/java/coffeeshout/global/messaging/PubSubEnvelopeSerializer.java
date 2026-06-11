@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@org.springframework.context.annotation.Profile("!test")
 public class PubSubEnvelopeSerializer {
 
     private final ObjectMapper objectMapper;
