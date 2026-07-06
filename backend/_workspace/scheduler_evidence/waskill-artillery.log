@@ -1,0 +1,253 @@
+
+> coffeeshout-load-test@1.0.0 test:player-removal
+> artillery run scenarios/player-removal-storm.yml --output ../_workspace/scheduler_evidence/player-removal-waskill-report.json
+
+Test run id: tqhrc_eyrknthx8tmh5knn5kqd7c8hrj79e_eadw
+Phase started: Player removal storm (index: 0, duration: 1s) 15:36:37(+0900)
+
+Phase completed: Player removal storm (index: 0, duration: 1s) 15:36:38(+0900)
+
+Room created with joinCode: U3HW
+Guest guest1 entered room U3HW
+Guest guest2 entered room U3HW
+Guest guest3 entered room U3HW
+Guest guest4 entered room U3HW
+Guest guest5 entered room U3HW
+Guest guest6 entered room U3HW
+Guest guest7 entered room U3HW
+Successfully entered 8 players to room U3HW
+Room 1/20 created: U3HW
+Room created with joinCode: Z9XF
+Guest guest1 entered room Z9XF
+Guest guest2 entered room Z9XF
+Guest guest3 entered room Z9XF
+Guest guest4 entered room Z9XF
+Guest guest5 entered room Z9XF
+Guest guest6 entered room Z9XF
+Guest guest7 entered room Z9XF
+Successfully entered 8 players to room Z9XF
+Room 2/20 created: Z9XF
+Room created with joinCode: UT8M
+Guest guest1 entered room UT8M
+Guest guest2 entered room UT8M
+Guest guest3 entered room UT8M
+Guest guest4 entered room UT8M
+Guest guest5 entered room UT8M
+Guest guest6 entered room UT8M
+Guest guest7 entered room UT8M
+Successfully entered 8 players to room UT8M
+Room 3/20 created: UT8M
+Room created with joinCode: WD3Z
+Guest guest1 entered room WD3Z
+Guest guest2 entered room WD3Z
+Guest guest3 entered room WD3Z
+Guest guest4 entered room WD3Z
+Guest guest5 entered room WD3Z
+Guest guest6 entered room WD3Z
+Guest guest7 entered room WD3Z
+Successfully entered 8 players to room WD3Z
+Room 4/20 created: WD3Z
+Room created with joinCode: TFSL
+Guest guest1 entered room TFSL
+Guest guest2 entered room TFSL
+Guest guest3 entered room TFSL
+Guest guest4 entered room TFSL
+Guest guest5 entered room TFSL
+Guest guest6 entered room TFSL
+Guest guest7 entered room TFSL
+Successfully entered 8 players to room TFSL
+Room 5/20 created: TFSL
+Room created with joinCode: MV9P
+Guest guest1 entered room MV9P
+Guest guest2 entered room MV9P
+Guest guest3 entered room MV9P
+Guest guest4 entered room MV9P
+Guest guest5 entered room MV9P
+Guest guest6 entered room MV9P
+Guest guest7 entered room MV9P
+Successfully entered 8 players to room MV9P
+Room 6/20 created: MV9P
+Room created with joinCode: MQ34
+Guest guest1 entered room MQ34
+Guest guest2 entered room MQ34
+Guest guest3 entered room MQ34
+Guest guest4 entered room MQ34
+Guest guest5 entered room MQ34
+Guest guest6 entered room MQ34
+Guest guest7 entered room MQ34
+Successfully entered 8 players to room MQ34
+Room 7/20 created: MQ34
+Room created with joinCode: 48DQ
+Guest guest1 entered room 48DQ
+Guest guest2 entered room 48DQ
+Guest guest3 entered room 48DQ
+Guest guest4 entered room 48DQ
+Guest guest5 entered room 48DQ
+Guest guest6 entered room 48DQ
+Guest guest7 entered room 48DQ
+Successfully entered 8 players to room 48DQ
+Room 8/20 created: 48DQ
+Room created with joinCode: 4TMD
+Guest guest1 entered room 4TMD
+Guest guest2 entered room 4TMD
+Guest guest3 entered room 4TMD
+Guest guest4 entered room 4TMD
+Guest guest5 entered room 4TMD
+Guest guest6 entered room 4TMD
+Guest guest7 entered room 4TMD
+Successfully entered 8 players to room 4TMD
+Room 9/20 created: 4TMD
+Room created with joinCode: WY9C
+Guest guest1 entered room WY9C
+Guest guest2 entered room WY9C
+Guest guest3 entered room WY9C
+Guest guest4 entered room WY9C
+Guest guest5 entered room WY9C
+Guest guest6 entered room WY9C
+Guest guest7 entered room WY9C
+Successfully entered 8 players to room WY9C
+Room 10/20 created: WY9C
+Room created with joinCode: XSZT
+Guest guest1 entered room XSZT
+Guest guest2 entered room XSZT
+Guest guest3 entered room XSZT
+Guest guest4 entered room XSZT
+Guest guest5 entered room XSZT
+Guest guest6 entered room XSZT
+Guest guest7 entered room XSZT
+Successfully entered 8 players to room XSZT
+Room 11/20 created: XSZT
+Room created with joinCode: 9GM3
+Guest guest1 entered room 9GM3
+Guest guest2 entered room 9GM3
+Guest guest3 entered room 9GM3
+Guest guest4 entered room 9GM3
+Guest guest5 entered room 9GM3
+Guest guest6 entered room 9GM3
+Guest guest7 entered room 9GM3
+Successfully entered 8 players to room 9GM3
+Room 12/20 created: 9GM3
+Room created with joinCode: VQKA
+Guest guest1 entered room VQKA
+Guest guest2 entered room VQKA
+Guest guest3 entered room VQKA
+Guest guest4 entered room VQKA
+Guest guest5 entered room VQKA
+Guest guest6 entered room VQKA
+Guest guest7 entered room VQKA
+Successfully entered 8 players to room VQKA
+Room 13/20 created: VQKA
+Room created with joinCode: 4FUP
+Guest guest1 entered room 4FUP
+Guest guest2 entered room 4FUP
+Guest guest3 entered room 4FUP
+Guest guest4 entered room 4FUP
+Guest guest5 entered room 4FUP
+Guest guest6 entered room 4FUP
+Guest guest7 entered room 4FUP
+Successfully entered 8 players to room 4FUP
+Room 14/20 created: 4FUP
+Room created with joinCode: YHPL
+Guest guest1 entered room YHPL
+Guest guest2 entered room YHPL
+Guest guest3 entered room YHPL
+Guest guest4 entered room YHPL
+Guest guest5 entered room YHPL
+Guest guest6 entered room YHPL
+Guest guest7 entered room YHPL
+Successfully entered 8 players to room YHPL
+Room 15/20 created: YHPL
+Room created with joinCode: F7KC
+Guest guest1 entered room F7KC
+Guest guest2 entered room F7KC
+Guest guest3 entered room F7KC
+Guest guest4 entered room F7KC
+Guest guest5 entered room F7KC
+Guest guest6 entered room F7KC
+Guest guest7 entered room F7KC
+Successfully entered 8 players to room F7KC
+Room 16/20 created: F7KC
+Room created with joinCode: 3THB
+Guest guest1 entered room 3THB
+Guest guest2 entered room 3THB
+Guest guest3 entered room 3THB
+Guest guest4 entered room 3THB
+Guest guest5 entered room 3THB
+Guest guest6 entered room 3THB
+Guest guest7 entered room 3THB
+Successfully entered 8 players to room 3THB
+Room 17/20 created: 3THB
+Room created with joinCode: 3CKV
+Guest guest1 entered room 3CKV
+Guest guest2 entered room 3CKV
+Guest guest3 entered room 3CKV
+Guest guest4 entered room 3CKV
+Guest guest5 entered room 3CKV
+Guest guest6 entered room 3CKV
+Guest guest7 entered room 3CKV
+Successfully entered 8 players to room 3CKV
+Room 18/20 created: 3CKV
+Room created with joinCode: UJA9
+Guest guest1 entered room UJA9
+Guest guest2 entered room UJA9
+Guest guest3 entered room UJA9
+Guest guest4 entered room UJA9
+Guest guest5 entered room UJA9
+Guest guest6 entered room UJA9
+Guest guest7 entered room UJA9
+Successfully entered 8 players to room UJA9
+Room 19/20 created: UJA9
+Room created with joinCode: K3WD
+Guest guest1 entered room K3WD
+Guest guest2 entered room K3WD
+Guest guest3 entered room K3WD
+Guest guest4 entered room K3WD
+Guest guest5 entered room K3WD
+Guest guest6 entered room K3WD
+Guest guest7 entered room K3WD
+Successfully entered 8 players to room K3WD
+Room 20/20 created: K3WD
+All bound connections established (20 rooms x 8 players)
+--------------------------------------
+Metrics for period to: 15:36:40(+0900) (width: 0s)
+--------------------------------------
+
+vusers.created: ................................................................ 1
+vusers.created_by_name.20방 × guest 7명 disconnect storm → 절반 재접속 취소 → 나머지 지연 삭제:  1
+
+
+Disconnected 140 guests → removal schedule storm
+Reconnected 60 guests within grace period → cancel path
+--------------------------------------
+Metrics for period to: 15:37:20(+0900) (width: 0s)
+--------------------------------------
+
+vusers.completed: .............................................................. 1
+vusers.failed: ................................................................. 0
+vusers.session_length:
+  min: ......................................................................... 37184
+  max: ......................................................................... 37184
+  mean: ........................................................................ 37184
+  median: ...................................................................... 37432.7
+  p95: ......................................................................... 37432.7
+  p99: ......................................................................... 37432.7
+
+
+All VUs finished. Total time: 38 seconds
+
+--------------------------------
+Summary report @ 15:37:16(+0900)
+--------------------------------
+
+vusers.completed: .............................................................. 1
+vusers.created: ................................................................ 1
+vusers.created_by_name.20방 × guest 7명 disconnect storm → 절반 재접속 취소 → 나머지 지연 삭제:  1
+vusers.failed: ................................................................. 0
+vusers.session_length:
+  min: ......................................................................... 37184
+  max: ......................................................................... 37184
+  mean: ........................................................................ 37184
+  median: ...................................................................... 37432.7
+  p95: ......................................................................... 37432.7
+  p99: ......................................................................... 37432.7
+Log file: ../_workspace/scheduler_evidence/player-removal-waskill-report.json
