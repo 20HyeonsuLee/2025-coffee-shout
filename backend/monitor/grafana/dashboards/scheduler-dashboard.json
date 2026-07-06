@@ -1,0 +1,102 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "type": "stat",
+      "title": "스케줄 등록",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "none" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "targets": [
+        { "expr": "sum(scheduler_task_scheduled_total{job=\"spring-boot-app\"}) or vector(0)", "legendFormat": "등록", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "취소 (재접속)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 5, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "none" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "targets": [
+        { "expr": "sum(scheduler_task_cancelled_total{job=\"spring-boot-app\"}) or vector(0)", "legendFormat": "취소", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "소비 (삭제 실행)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 10, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "none" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "targets": [
+        { "expr": "sum(scheduler_task_consumed_total{job=\"spring-boot-app\"}) or vector(0)", "legendFormat": "소비", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "실행 실패",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 15, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        { "expr": "sum(scheduler_task_failed_total{job=\"spring-boot-app\"}) or vector(0)", "legendFormat": "실패", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "잔여 작업 (등록-취소-소비)",
+      "description": "storm 종료 후 0이어야 함 — 0보다 크면 유실, 음수면 중복 실행",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 19, "y": 0 },
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "unit": "none", "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] } }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "targets": [
+        { "expr": "(sum(scheduler_task_scheduled_total{job=\"spring-boot-app\"}) or vector(0)) - (sum(scheduler_task_cancelled_total{job=\"spring-boot-app\"}) or vector(0)) - (sum(scheduler_task_consumed_total{job=\"spring-boot-app\"}) or vector(0))", "legendFormat": "잔여", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "WAS 인스턴스별 소비 — 원자적 소비 분산 확인",
+      "description": "한 작업은 정확히 한 인스턴스만 소비한다. 두 인스턴스 합 = 전체 소비량",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "none", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "sum(scheduler_task_consumed_total{job=\"spring-boot-app\"}) by (instance)", "legendFormat": "소비 {{instance}}", "refId": "A" },
+        { "expr": "sum(scheduler_task_scheduled_total{job=\"spring-boot-app\"}) by (instance)", "legendFormat": "등록 {{instance}}", "refId": "B" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Fire Delay — 예정 시각 대비 실제 실행 지연",
+      "description": "폴링 주기(1s)에 의한 오차. p99가 폴링 주기 + 첫 스크레이프 지연 안에 있어야 함",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 12, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(scheduler_task_fire_delay_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(scheduler_task_fire_delay_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(scheduler_task_fire_delay_seconds_bucket{job=\"spring-boot-app\"}[5m])) by (le))", "legendFormat": "p99", "refId": "C" },
+        { "expr": "max(scheduler_task_fire_delay_seconds_max{job=\"spring-boot-app\"})", "legendFormat": "max", "refId": "D" }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["coffee-shout", "scheduler"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timezone": "Asia/Seoul",
+  "title": "분산 스케줄러 — 지연 작업 검증",
+  "uid": "delayed-task-scheduler",
+  "version": 1
+}
