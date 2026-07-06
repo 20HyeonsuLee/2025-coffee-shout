@@ -1,28 +1,35 @@
 package coffeeshout.global.websocket;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
+import coffeeshout.global.scheduler.DelayedTask;
+import coffeeshout.global.scheduler.DelayedTaskScheduler;
+import coffeeshout.global.scheduler.DelayedTaskType;
+import coffeeshout.global.websocket.DelayedPlayerRemovalService.PlayerRemovalPayload;
 import coffeeshout.room.application.RoomService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
-import java.util.concurrent.ScheduledFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.scheduling.TaskScheduler;
 
 @ExtendWith(MockitoExtension.class)
 class DelayedPlayerRemovalServiceTest {
 
     @Mock
-    private TaskScheduler taskScheduler;
+    private DelayedTaskScheduler taskScheduler;
 
     @Mock
     private PlayerDisconnectionService playerDisconnectionService;
@@ -33,9 +40,7 @@ class DelayedPlayerRemovalServiceTest {
     @Mock
     private StompSessionManager sessionManager;
 
-    @Mock
-    @SuppressWarnings("rawtypes")
-    private ScheduledFuture scheduledFuture;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private DelayedPlayerRemovalService delayedPlayerRemovalService;
 
@@ -46,29 +51,29 @@ class DelayedPlayerRemovalServiceTest {
     @BeforeEach
     void setUp() {
         delayedPlayerRemovalService = new DelayedPlayerRemovalService(taskScheduler, playerDisconnectionService,
-                sessionManager, roomService);
+                sessionManager, roomService, objectMapper);
     }
 
     @Nested
     class 플레이어_지연_삭제_스케줄링 {
 
         @Test
-        @SuppressWarnings("unchecked")
         void 정상적으로_지연_삭제를_스케줄링한다() {
             // given
             given(roomService.isReadyState("ABC23")).willReturn(true);
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willReturn(scheduledFuture);
 
             // when
             delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
 
             // then
-            then(taskScheduler).should().schedule(any(Runnable.class), any(Instant.class));
+            final ArgumentCaptor<DelayedTask> taskCaptor = ArgumentCaptor.forClass(DelayedTask.class);
+            then(taskScheduler).should().schedule(taskCaptor.capture(), any(Instant.class));
+            final DelayedTask task = taskCaptor.getValue();
+            assertThat(task.type()).isEqualTo(DelayedTaskType.PLAYER_REMOVAL);
+            assertThat(task.id()).isEqualTo(playerKey);
         }
 
         @Test
-        @SuppressWarnings("unchecked")
         void 게임중이면_지연_삭제를_스케줄링_안한다() {
             // given
             given(roomService.isReadyState("ABC23")).willReturn(false);
@@ -77,26 +82,23 @@ class DelayedPlayerRemovalServiceTest {
             delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
 
             // then
-            then(taskScheduler).should(never()).schedule(any(Runnable.class), any(Instant.class));
+            then(taskScheduler).should(never()).schedule(any(DelayedTask.class), any(Instant.class));
             then(playerDisconnectionService).should(never()).cancelReady(any());
         }
 
         @Test
-        @SuppressWarnings("unchecked")
         void 서로_다른_플레이어는_독립적으로_스케줄링된다() {
             // given
             String anotherPlayerKey = "DEF456:박영희";
             given(roomService.isReadyState("ABC23")).willReturn(true);
             given(roomService.isReadyState("DEF456")).willReturn(true);
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willReturn(scheduledFuture);
 
             // when
             delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
             delayedPlayerRemovalService.schedulePlayerRemoval(anotherPlayerKey, "session-456", reason);
 
             // then
-            then(taskScheduler).should(times(2)).schedule(any(Runnable.class), any(Instant.class));
+            then(taskScheduler).should(times(2)).schedule(any(DelayedTask.class), any(Instant.class));
         }
     }
 
@@ -104,119 +106,63 @@ class DelayedPlayerRemovalServiceTest {
     class 지연_삭제_취소 {
 
         @Test
-        @SuppressWarnings("unchecked")
-        void 스케줄된_삭제를_정상적으로_취소한다() {
-            // given
-            given(roomService.isReadyState("ABC23")).willReturn(true);
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willReturn(scheduledFuture);
-            given(scheduledFuture.isDone()).willReturn(false);
-
-            delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
-
+        void 스케줄된_삭제를_스케줄러에_취소_위임한다() {
             // when
             delayedPlayerRemovalService.cancelScheduledRemoval(playerKey);
 
             // then
-            then(scheduledFuture).should().cancel(false);
+            then(taskScheduler).should().cancel(DelayedTaskType.PLAYER_REMOVAL, playerKey);
         }
 
         @Test
-        @SuppressWarnings("unchecked")
-        void 이미_완료된_스케줄은_취소하지_않는다() {
-            // given
-            given(roomService.isReadyState("ABC23")).willReturn(true);
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willReturn(scheduledFuture);
-            given(scheduledFuture.isDone()).willReturn(true);
-
-            delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
-
-            // when
-            delayedPlayerRemovalService.cancelScheduledRemoval(playerKey);
-
-            // then
-            then(scheduledFuture).should(never()).cancel(false);
-        }
-
-        @Test
-        void 존재하지_않는_플레이어의_취소_요청은_무시한다() {
-            // when
-            delayedPlayerRemovalService.cancelScheduledRemoval("없는플레이어");
-
-            // then - 예외 발생하지 않고 정상 처리
-            then(scheduledFuture).should(never()).cancel(false);
+        void 존재하지_않는_플레이어의_취소_요청도_위임한다() {
+            // 취소는 멱등 연산이므로 존재 여부와 무관하게 위임한다 (다른 WAS가 등록한 스케줄일 수 있음)
+            assertThatCode(() -> delayedPlayerRemovalService.cancelScheduledRemoval("없는방:없는플레이어"))
+                    .doesNotThrowAnyException();
+            then(taskScheduler).should().cancel(DelayedTaskType.PLAYER_REMOVAL, "없는방:없는플레이어");
         }
     }
 
-
     @Nested
-    class 실제_삭제_실행_시뮬레이션 {
+    class 지연_삭제_실행 {
 
         @Test
-        @SuppressWarnings("unchecked")
-        void PlayerDisconnectionService가_정상_호출된다() {
+        void payload를_역직렬화해_PlayerDisconnectionService를_호출한다() throws Exception {
             // given
-            given(roomService.isReadyState("ABC23")).willReturn(true);
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willAnswer(invocation -> {
-                        Runnable task = invocation.getArgument(0);
-                        // 스케줄링된 태스크를 바로 실행
-                        task.run();
-                        return scheduledFuture;
-                    });
+            final String payload = objectMapper.writeValueAsString(
+                    new PlayerRemovalPayload(playerKey, sessionId, reason));
 
             // when
-            delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
+            delayedPlayerRemovalService.handle(playerKey, payload);
 
             // then
             then(playerDisconnectionService).should()
                     .handlePlayerDisconnection(playerKey, sessionId, reason);
+            then(sessionManager).should().removeSessionInternal(sessionId);
         }
 
         @Test
-        @SuppressWarnings("unchecked")
-        void PlayerDisconnectionService에서_예외_발생해도_안전하게_처리한다() {
+        void PlayerDisconnectionService에서_예외_발생해도_안전하게_처리한다() throws Exception {
             // given
-            given(roomService.isReadyState("ABC23")).willReturn(true);
             willThrow(new RuntimeException("플레이어 삭제 실패"))
                     .given(playerDisconnectionService)
                     .handlePlayerDisconnection(any(), any(), any());
-
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willAnswer(invocation -> {
-                        Runnable task = invocation.getArgument(0);
-                        // 스케줄링된 태스크를 바로 실행
-                        task.run();
-                        return scheduledFuture;
-                    });
+            final String payload = objectMapper.writeValueAsString(
+                    new PlayerRemovalPayload(playerKey, sessionId, reason));
 
             // when & then - 예외가 터져도 프로그램이 죽지 않음
-            delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
-
-            then(playerDisconnectionService).should()
-                    .handlePlayerDisconnection(playerKey, sessionId, reason);
+            assertThatCode(() -> delayedPlayerRemovalService.handle(playerKey, payload))
+                    .doesNotThrowAnyException();
         }
-    }
-
-    @Nested
-    class 동시성_시나리오 {
 
         @Test
-        @SuppressWarnings("unchecked")
-        void 스케줄링_중_취소_요청이_와도_안전하게_처리한다() {
-            // given
-            given(roomService.isReadyState("ABC23")).willReturn(true);
-            given(taskScheduler.schedule(any(Runnable.class), any(Instant.class)))
-                    .willReturn(scheduledFuture);
-            given(scheduledFuture.isDone()).willReturn(false);
-
+        void payload가_손상되면_taskId를_playerKey로_사용해_제거를_진행한다() {
             // when
-            delayedPlayerRemovalService.schedulePlayerRemoval(playerKey, sessionId, reason);
-            delayedPlayerRemovalService.cancelScheduledRemoval(playerKey);
+            delayedPlayerRemovalService.handle(playerKey, "");
 
             // then
-            then(scheduledFuture).should().cancel(false);
+            then(playerDisconnectionService).should()
+                    .handlePlayerDisconnection(eq(playerKey), any(), any());
         }
     }
 }

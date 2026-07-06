@@ -1,5 +1,6 @@
 package coffeeshout.global.config;
 
+import coffeeshout.global.scheduler.DelayedTaskScheduler;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -17,9 +18,9 @@ public class ServiceTestConfig {
         return new TestTaskScheduler();
     }
 
-    @Bean(name = "delayRemovalScheduler")
-    public TaskScheduler testDelayRemovalScheduler() {
-        return new ShutDownTestScheduler();
+    @Bean
+    public DelayedTaskScheduler testDelayedTaskScheduler() {
+        return new FakeDelayedTaskScheduler();
     }
 
     @Bean(name = "racingGameScheduler")
