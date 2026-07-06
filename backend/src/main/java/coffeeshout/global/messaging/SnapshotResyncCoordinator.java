@@ -9,6 +9,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Slf4j
@@ -20,6 +21,7 @@ public class SnapshotResyncCoordinator {
     private final ConcurrentMap<String, InFlightResync> inFlight = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ResyncCheckpoint> checkpoints = new ConcurrentHashMap<>();
 
+    @Autowired
     public SnapshotResyncCoordinator(final PubSubMetricService pubSubMetric) {
         this(pubSubMetric, SnapshotResyncPolicy.defaultPolicy());
     }
