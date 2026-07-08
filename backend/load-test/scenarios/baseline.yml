@@ -1,0 +1,22 @@
+config:
+  target: "{{ $env.TARGET_HOST }}"
+  phases:
+    - duration: 1
+      arrivalCount: 1
+      name: "Baseline smoke"
+  processor: "../processor.js"
+  variables:
+    host: "{{ $env.TARGET_HOST }}"
+    menuId: 0
+    menuCustomName: "토맛토마토"
+    menuTemperature: "ICE"
+    roomCount: 1
+    guestCount: 1
+
+scenarios:
+  - name: "방 생성 + 입장 + ready 토글 1회"
+    beforeScenario: "setup"
+    flow:
+      - think: 1
+      - function: "sendReadyTrue"
+      - think: 2

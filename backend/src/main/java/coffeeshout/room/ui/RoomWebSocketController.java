@@ -11,7 +11,6 @@ import coffeeshout.room.domain.event.RouletteSpinEvent;
 import coffeeshout.room.domain.player.Winner;
 import coffeeshout.room.domain.roulette.Roulette;
 import coffeeshout.room.domain.roulette.RoulettePicker;
-import coffeeshout.room.infra.messaging.RoomEventPublisher;
 import coffeeshout.room.ui.request.MiniGameSelectMessage;
 import coffeeshout.room.ui.request.ReadyChangeMessage;
 import coffeeshout.room.ui.request.RouletteSpinMessage;
@@ -22,6 +21,7 @@ import generator.annotaions.MessageResponse;
 import generator.annotaions.Operation;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Controller;
 @RequiredArgsConstructor
 public class RoomWebSocketController {
 
-    private final RoomEventPublisher roomEventPublisher;
+    private final ApplicationEventPublisher roomEventPublisher;
     private final RoomService roomService;
 
     @MessageMapping("/room/{joinCode}/update-players")

@@ -1,12 +1,11 @@
 package coffeeshout.global.websocket.event;
 
-import coffeeshout.test.metric.WebSocketMetricService;
 import coffeeshout.global.websocket.StompSessionManager;
 import coffeeshout.global.websocket.SubscriptionInfoService;
 import coffeeshout.global.websocket.event.player.PlayerDisconnectedEvent;
-import coffeeshout.global.websocket.infra.PlayerEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -17,12 +16,9 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 @RequiredArgsConstructor
 public class SessionDisconnectEventListener {
 
-    private static final String CLIENT_DISCONNECT = "CLIENT_DISCONNECT";
-
     private final StompSessionManager sessionManager;
-    private final PlayerEventPublisher playerEventPublisher;
+    private final ApplicationEventPublisher playerEventPublisher;
     private final SubscriptionInfoService subscriptionInfoService;
-    private final WebSocketMetricService webSocketMetricService;
 
     @EventListener
     public void handleSessionDisconnectEvent(SessionDisconnectEvent event) {
@@ -51,7 +47,5 @@ public class SessionDisconnectEventListener {
                     playerKey, sessionId, "SESSION_DISCONNECT");
             playerEventPublisher.publishEvent(playerDisconnectedEvent);
         }
-
-        webSocketMetricService.recordDisconnection(sessionId, CLIENT_DISCONNECT);
     }
 }

@@ -1,14 +1,13 @@
 package coffeeshout.global.websocket.event;
 
-import coffeeshout.test.metric.WebSocketMetricService;
 import coffeeshout.global.websocket.StompSessionManager;
 import coffeeshout.global.websocket.event.session.SessionRegisteredEvent;
-import coffeeshout.global.websocket.infra.SessionEventPublisher;
 import coffeeshout.room.domain.JoinCode;
 import coffeeshout.room.domain.Room;
 import coffeeshout.room.domain.service.RoomQueryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -21,16 +20,14 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 @RequiredArgsConstructor
 public class SessionConnectEventListener {
 
-    private final WebSocketMetricService webSocketMetricService;
     private final StompSessionManager sessionManager;
-    private final SessionEventPublisher sessionEventPublisher;
+    private final ApplicationEventPublisher sessionEventPublisher;
     private final RoomQueryService roomQueryService;
 
     @EventListener
     public void handleSessionConnect(SessionConnectEvent event) {
         final String sessionId = event.getMessage().getHeaders().get("simpSessionId", String.class);
         log.info("웹소켓 연결 시작: sessionId={}", sessionId);
-        webSocketMetricService.startConnection(sessionId);
     }
 
     @EventListener
@@ -58,7 +55,6 @@ public class SessionConnectEventListener {
         }
 
         processPlayerConnection(sessionId, joinCode, playerName);
-        webSocketMetricService.completeConnection(sessionId);
     }
 
     private void processPlayerConnection(String sessionId, String joinCode, String playerName) {

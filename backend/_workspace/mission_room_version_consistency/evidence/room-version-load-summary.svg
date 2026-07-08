@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <rect width="1400" height="900" fill="#0b0f14"/>
+  <text x="60" y="78" fill="#f4f7fb" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700">Room Version Consistency Load Test</text>
+  <text x="60" y="116" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="18">Local multi-WAS stack, Redis SSOT + Pub/Sub, 2026-04-27</text>
+
+  <g transform="translate(60,160)">
+    <rect width="390" height="170" rx="10" fill="#121923" stroke="#263447"/>
+    <text x="24" y="42" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="16">Scenario</text>
+    <text x="24" y="84" fill="#f4f7fb" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">20 rooms x 8 players</text>
+    <text x="24" y="122" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="18">7 guests x 20 ready rounds</text>
+    <text x="24" y="150" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="14">Host ready publish is ignored by domain policy</text>
+  </g>
+
+  <g transform="translate(505,160)">
+    <rect width="390" height="170" rx="10" fill="#121923" stroke="#263447"/>
+    <text x="24" y="42" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="16">Redis roomVersion</text>
+    <text x="24" y="92" fill="#7ee787" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="800">20 rooms @ 148</text>
+    <text x="24" y="132" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="18">8 setup versions + 140 ready changes</text>
+  </g>
+
+  <g transform="translate(950,160)">
+    <rect width="390" height="170" rx="10" fill="#121923" stroke="#263447"/>
+    <text x="24" y="42" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="16">Artillery Result</text>
+    <text x="24" y="92" fill="#7ee787" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="800">0 failures</text>
+    <text x="24" y="132" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="18">16s total, session p95 14.9s</text>
+  </g>
+
+  <g transform="translate(60,380)">
+    <rect width="620" height="250" rx="10" fill="#121923" stroke="#263447"/>
+    <text x="24" y="44" fill="#f4f7fb" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Pub/Sub Message Counters</text>
+    <text x="24" y="84" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="15">Published</text>
+    <rect x="24" y="104" width="520" height="28" rx="4" fill="#1f6feb"/>
+    <text x="44" y="125" fill="#f4f7fb" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="700">PLAYER_READY 2800</text>
+    <rect x="24" y="146" width="26" height="28" rx="4" fill="#58a6ff"/>
+    <text x="66" y="167" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="16">PLAYER_LIST_UPDATE 140</text>
+    <rect x="24" y="188" width="10" height="28" rx="4" fill="#8b949e"/>
+    <text x="50" y="209" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="16">ROOM_CREATE 20</text>
+  </g>
+
+  <g transform="translate(720,380)">
+    <rect width="620" height="250" rx="10" fill="#121923" stroke="#263447"/>
+    <text x="24" y="44" fill="#f4f7fb" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Consistency Recovery</text>
+    <g transform="translate(24,78)">
+      <rect width="170" height="128" rx="10" fill="#0f271b" stroke="#238636"/>
+      <text x="20" y="42" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="15">Version gaps</text>
+      <text x="20" y="94" fill="#7ee787" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="800">17</text>
+    </g>
+    <g transform="translate(224,78)">
+      <rect width="170" height="128" rx="10" fill="#0f271b" stroke="#238636"/>
+      <text x="20" y="42" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="15">Snapshot resyncs</text>
+      <text x="20" y="94" fill="#7ee787" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="800">17</text>
+    </g>
+    <g transform="translate(424,78)">
+      <rect width="170" height="128" rx="10" fill="#24140f" stroke="#f0883e"/>
+      <text x="20" y="42" fill="#91a1b5" font-family="Inter, Arial, sans-serif" font-size="15">Stale drops</text>
+      <text x="20" y="94" fill="#ffdfb6" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="800">0</text>
+    </g>
+  </g>
+
+  <g transform="translate(60,690)">
+    <rect width="1280" height="130" rx="10" fill="#121923" stroke="#263447"/>
+    <text x="24" y="44" fill="#f4f7fb" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700">Portfolio Claim</text>
+    <text x="24" y="82" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="19">Redis is the authoritative room snapshot. Pub/Sub is treated as a propagation channel.</text>
+    <text x="24" y="112" fill="#d6deea" font-family="Inter, Arial, sans-serif" font-size="19">Subscribers use Redis-owned roomVersion to drop stale messages and recover from gaps by full snapshot resync.</text>
+  </g>
+</svg>

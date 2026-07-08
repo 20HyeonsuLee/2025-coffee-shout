@@ -13,7 +13,6 @@ import coffeeshout.room.ui.response.RoomCreateResponse;
 import coffeeshout.room.ui.response.RoomEnterResponse;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -43,26 +42,18 @@ public class RoomRestController implements RoomApi {
 
     @PostMapping
     public ResponseEntity<RoomCreateResponse> createRoom(@Valid @RequestBody RoomEnterRequest request) {
-        final Room room = roomService.createRoom(request.playerName(), request.menu());
+        final Room room = roomService.createRoom(request.playerName());
 
         return ResponseEntity.ok(RoomCreateResponse.from(room));
     }
 
     @PostMapping("/{joinCode}")
-    public CompletableFuture<ResponseEntity<RoomEnterResponse>> enterRoom(
+    public ResponseEntity<RoomEnterResponse> enterRoom(
             @PathVariable String joinCode,
             @Valid @RequestBody RoomEnterRequest request
     ) {
-        return roomService.enterRoomAsync(joinCode, request.playerName(), request.menu())
-                .thenApply(room -> ResponseEntity.ok(RoomEnterResponse.from(room)))
-                .exceptionally(throwable -> {
-                    // 원래 예외 추출
-                    final Throwable cause = throwable.getCause() != null ? throwable.getCause() : throwable;
-                    if (cause instanceof RuntimeException runtimeException) {
-                        throw runtimeException;
-                    }
-                    throw new RuntimeException("방 참가 실패", cause);
-                });
+        final Room room = roomService.enterRoom(joinCode, request.playerName());
+        return ResponseEntity.ok(RoomEnterResponse.from(room));
     }
 
     @GetMapping("/check-joinCode")
@@ -101,6 +92,16 @@ public class RoomRestController implements RoomApi {
         final List<MiniGameType> result = roomService.getSelectedMiniGames(joinCode);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/{joinCode}/ready")
+    public ResponseEntity<Void> toggleReady(
+            @PathVariable String joinCode,
+            @RequestParam String playerName,
+            @RequestParam Boolean isReady
+    ) {
+        roomService.changePlayerReadyState(joinCode, playerName, isReady);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{joinCode}/players/{playerName}")

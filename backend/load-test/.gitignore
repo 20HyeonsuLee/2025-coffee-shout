@@ -1,0 +1,6 @@
+node_modules/
+package-lock.json
+artillery-report.*.json
+artillery-report.*.html
+.DS_Store
+temp

@@ -9,33 +9,33 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   lifecycle:
     timeout-per-shutdown-phase: 5m
-  cloud:
-    aws:
-      s3:
-        bucket: ${S3_BUCKET_NAME}
-
   data:
     redis:
       port: 6379
       ssl:
-        enabled: true
+        enabled: false
       host: localhost
       stream:
         room-join-key: room:broadcast
         card-game-select-key: cardGame:select:broadcast
         racing-game-key: racingGame:broadcast
         max-length: 100
+  cloud:
+    aws:
+      s3:
+        bucket: coffee-shout-local
 
 room:
   removalDelay: 1h
-  qr:
-    width: 150
-    height: 150
-    presignedUrl:
-      expirationHours: 1
-    s3-key-prefix: ${S3_QR_KEY_PREFIX}
   event:
     timeout: 5s
+  qr:
+    prefix: "http://localhost:3000/room/"
+    height: 300
+    width: 300
+    presigned-url:
+      expiration-hours: 1
+    s3-key-prefix: "qr/"
 
 logging:
   level:
@@ -55,7 +55,7 @@ management:
   tracing:
     enabled: true
     sampling:
-      probability: 0.1
+      probability: 1.0
   otlp:
     tracing:
       endpoint: http://43.200.101.122:4318/v1/traces
@@ -106,6 +106,3 @@ loadtest:
     connection-count: 4
     stream-key: "loadtest:xadd"
     max-length: 1000
-
-menu-category:
-  default-image: "https://techcourse-project-2025.s3.ap-northeast-2.amazonaws.com/coffee-shout/images/custom-menu.svg"

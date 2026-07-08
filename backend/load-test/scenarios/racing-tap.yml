@@ -1,0 +1,30 @@
+config:
+  target: "{{ $env.TARGET_HOST }}"
+  phases:
+    - duration: 1
+      arrivalCount: 1
+      name: "Racing tap"
+  processor: "../processor.js"
+  variables:
+    host: "{{ $env.TARGET_HOST }}"
+    menuId: 0
+    menuCustomName: "토맛토마토"
+    menuTemperature: "ICE"
+    roomCount: 30
+    guestCount: 7
+
+scenarios:
+  - name: "30방 × 8명 레이싱 게임 연속 탭 (110초)"
+    beforeScenario: "setup"
+    flow:
+      - think: 2
+      - function: "sendReadyTrue"
+      - think: 1
+      - function: "sendUpdateMiniGames"
+      - think: 1
+      - function: "sendStartMiniGame"
+      - think: 2
+      - function: "sendContinuousTaps"
+      - think: 110
+      - function: "stopContinuousTaps"
+      - think: 5

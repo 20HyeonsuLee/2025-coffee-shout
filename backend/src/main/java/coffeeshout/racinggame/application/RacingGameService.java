@@ -13,6 +13,7 @@ import coffeeshout.room.domain.JoinCode;
 import coffeeshout.room.domain.Room;
 import coffeeshout.room.domain.player.Player;
 import coffeeshout.room.domain.player.PlayerName;
+import coffeeshout.room.domain.repository.RoomRepository;
 import coffeeshout.room.domain.service.RoomQueryService;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,17 +30,20 @@ import org.springframework.stereotype.Service;
 public class RacingGameService implements MiniGameService {
 
     private final RoomQueryService roomQueryService;
+    private final RoomRepository roomRepository;
     private final TaskScheduler taskScheduler;
     private final ApplicationEventPublisher eventPublisher;
     private final SpeedCalculator speedCalculator;
 
     public RacingGameService(
             RoomQueryService roomQueryService,
+            RoomRepository roomRepository,
             @Qualifier("racingGameScheduler") TaskScheduler taskScheduler,
             ApplicationEventPublisher eventPublisher,
             SpeedCalculator speedCalculator
     ) {
         this.roomQueryService = roomQueryService;
+        this.roomRepository = roomRepository;
         this.taskScheduler = taskScheduler;
         this.eventPublisher = eventPublisher;
         this.speedCalculator = speedCalculator;
@@ -126,7 +130,16 @@ public class RacingGameService implements MiniGameService {
     }
 
     private void publishRunnersMoved(RacingGame racingGame, String joinCode) {
+        flushPositionsToRedis(racingGame, joinCode);
         eventPublisher.publishEvent(RunnersMovedEvent.of(racingGame, joinCode));
+    }
+
+    private void flushPositionsToRedis(RacingGame racingGame, String joinCode) {
+        try {
+            roomRepository.updatePositions(new JoinCode(joinCode), racingGame.getPositionsByName());
+        } catch (Exception e) {
+            log.warn("positions Redis flush 실패 — tick 계속 진행: joinCode={}, cause={}", joinCode, e.getMessage());
+        }
     }
 
     private void handleAutoMoveError(RacingGame racingGame, Exception e) {

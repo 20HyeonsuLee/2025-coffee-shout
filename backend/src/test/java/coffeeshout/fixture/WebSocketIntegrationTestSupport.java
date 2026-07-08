@@ -12,7 +12,6 @@ import java.util.concurrent.TimeoutException;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.SoftAssertions;
 import org.json.JSONException;
-import org.junit.jupiter.api.BeforeEach;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.comparator.CustomComparator;
@@ -22,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaders;
@@ -48,18 +46,8 @@ public abstract class WebSocketIntegrationTestSupport {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private RedisMessageListenerContainer redisMessageListenerContainer;
-
     @LocalServerPort
     private int port;
-
-    @BeforeEach
-    void cleanupRedisListeners() {
-        // 모든 리스너 제거 후 재시작하여 중복 등록 방지
-        redisMessageListenerContainer.stop();
-        redisMessageListenerContainer.start();
-    }
 
     public TestStompSession createSession() throws InterruptedException, ExecutionException, TimeoutException {
         SockJsClient sockJsClient = new SockJsClient(List.of(

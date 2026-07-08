@@ -1,13 +1,18 @@
 package coffeeshout.global.config.redis;
 
 import coffeeshout.global.config.properties.RedisProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.lettuce.core.api.StatefulConnection;
 import io.lettuce.core.metrics.MicrometerCommandLatencyRecorder;
 import io.lettuce.core.metrics.MicrometerOptions;
 import io.lettuce.core.resource.ClientResources;
+import io.lettuce.core.tracing.MicrometerTracing;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.observation.ObservationRegistry;
+import coffeeshout.global.messaging.PubSubSubscriber;
 import lombok.RequiredArgsConstructor;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,9 +21,9 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 @Configuration
@@ -28,7 +33,10 @@ public class RedisConfig {
     private final RedisProperties redisProperties;
 
     @Bean(destroyMethod = "shutdown")
-    public ClientResources lettuceClientResources(final MeterRegistry meterRegistry) {
+    public ClientResources lettuceClientResources(
+            final MeterRegistry meterRegistry,
+            final ObservationRegistry observationRegistry
+    ) {
         final MicrometerOptions options = MicrometerOptions.builder()
                 .enable()
                 .histogram(true)
@@ -36,87 +44,78 @@ public class RedisConfig {
 
         return ClientResources.builder()
                 .commandLatencyRecorder(new MicrometerCommandLatencyRecorder(meterRegistry, options))
+                .tracing(new MicrometerTracing(observationRegistry, "redis"))
                 .build();
     }
 
     @Bean
-    public RedisConnectionFactory redisConnectionFactory(
-            @org.springframework.beans.factory.annotation.Qualifier("lettuceClientResources")
-            final ClientResources clientResources
-    ) {
-        final RedisStandaloneConfiguration redisConfig =
+    public RedisConnectionFactory redisConnectionFactory(final ClientResources clientResources) {
+        final RedisStandaloneConfiguration config =
                 new RedisStandaloneConfiguration(redisProperties.host(), redisProperties.port());
 
-        final GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
+        final GenericObjectPoolConfig<StatefulConnection<?, ?>> poolConfig = new GenericObjectPoolConfig<>();
         poolConfig.setMaxTotal(8);
         poolConfig.setMaxIdle(8);
         poolConfig.setMinIdle(2);
 
-        LettucePoolingClientConfiguration clientConfig;
+        final LettucePoolingClientConfiguration clientConfig = buildClientConfig(poolConfig, clientResources);
+        return new LettuceConnectionFactory(config, clientConfig);
+    }
+
+    private LettucePoolingClientConfiguration buildClientConfig(
+            final GenericObjectPoolConfig<StatefulConnection<?, ?>> poolConfig,
+            final ClientResources clientResources
+    ) {
+        final var builder = LettucePoolingClientConfiguration.builder()
+                .poolConfig(poolConfig)
+                .clientResources(clientResources);
 
         if (redisProperties.ssl().enabled()) {
-            clientConfig = LettucePoolingClientConfiguration.builder()
-                    .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
-                    .clientResources(clientResources)
-                    .useSsl()
-                    .build();
-        } else {
-            clientConfig = LettucePoolingClientConfiguration.builder()
-                    .poolConfig((GenericObjectPoolConfig<StatefulConnection<?, ?>>) poolConfig)
-                    .clientResources(clientResources)
-                    .build();
+            builder.useSsl();
         }
 
-        return new LettuceConnectionFactory(redisConfig, clientConfig);
+        return builder.build();
     }
 
     @Bean
-    public RedisTemplate<String, Object> redisTemplate(
-            RedisConnectionFactory redisConnectionFactory,
-            ObjectMapper objectMapper
+    public RedisTemplate<String, String> redisTemplate(final RedisConnectionFactory connectionFactory) {
+        final RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setHashValueSerializer(new StringRedisSerializer());
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    @Bean
+    public StringRedisTemplate stringRedisTemplate(final RedisConnectionFactory connectionFactory) {
+        return new StringRedisTemplate(connectionFactory);
+    }
+
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClient() {
+        final Config config = new Config();
+        final String address = "redis://" + redisProperties.host() + ":" + redisProperties.port();
+        config.useSingleServer().setAddress(address);
+        return Redisson.create(config);
+    }
+
+    @Bean
+    public ChannelTopic coffeeShoutEventsTopic() {
+        return new ChannelTopic("coffeeshout:events");
+    }
+
+    @Bean
+    public RedisMessageListenerContainer redisMessageListenerContainer(
+            final RedisConnectionFactory connectionFactory,
+            final PubSubSubscriber subscriber,
+            final ChannelTopic coffeeShoutEventsTopic
     ) {
-        final RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(redisConnectionFactory);
-
-        // 문자열 키 직렬화
-        redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
-
-        // 객체 값 직렬화 (JSON 형태로 저장)
-        final GenericJackson2JsonRedisSerializer jackson2JsonRedisSerializer = new GenericJackson2JsonRedisSerializer(
-                objectMapper);
-        redisTemplate.setValueSerializer(jackson2JsonRedisSerializer);
-        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer);
-
-        redisTemplate.afterPropertiesSet();
-        return redisTemplate;
-    }
-
-    @Bean
-    public RedisMessageListenerContainer redisMessageListenerContainer(RedisConnectionFactory connectionFactory) {
         final RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
+        container.addMessageListener(subscriber, coffeeShoutEventsTopic);
         return container;
     }
-
-    @Bean
-    public ChannelTopic roomEventTopic() {
-        return new ChannelTopic("room.events");
-    }
-
-    @Bean
-    public ChannelTopic miniGameEventTopic() {
-        return new ChannelTopic("minigame.events");
-    }
-
-    @Bean
-    public ChannelTopic playerEventTopic() {
-        return new ChannelTopic("player.events");
-    }
-
-    @Bean
-    public ChannelTopic sessionEventTopic() {
-        return new ChannelTopic("session.events");
-    }
-
 }

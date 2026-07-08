@@ -192,4 +192,3 @@ public class RestExceptionHandler {
         log.warn(logMessage, e);
     }
 }
-

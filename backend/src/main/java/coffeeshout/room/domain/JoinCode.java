@@ -16,12 +16,10 @@ public final class JoinCode {
     private static final int CODE_LENGTH = 4;
 
     private final String value;
-    private QrCode qrCode;
 
     public JoinCode(String value) {
         validate(value);
         this.value = value;
-        this.qrCode = QrCode.pending();
     }
 
     public static JoinCode generate() {
@@ -31,10 +29,6 @@ public final class JoinCode {
                 .limit(CODE_LENGTH)
                 .map(JoinCode::convertAsciiToString)
                 .collect(Collectors.joining()));
-    }
-
-    public void assignQrCode(@NonNull QrCode qrCode) {
-        this.qrCode = qrCode;
     }
 
     private void validate(String value) {

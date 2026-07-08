@@ -6,9 +6,11 @@ import coffeeshout.minigame.domain.MiniGameScore;
 import coffeeshout.minigame.domain.MiniGameType;
 import coffeeshout.room.domain.Playable;
 import coffeeshout.room.domain.player.Player;
+import coffeeshout.room.domain.player.PlayerName;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.stream.Collectors;
@@ -91,6 +93,12 @@ public class RacingGame implements Playable {
 
     public Map<Runner, Integer> getPositions() {
         return runners.getPositions();
+    }
+
+    public Map<PlayerName, Integer> getPositionsByName() {
+        final Map<PlayerName, Integer> snapshot = new LinkedHashMap<>();
+        runners.stream().forEach(runner -> snapshot.put(runner.getPlayer().getName(), runner.getPosition()));
+        return snapshot;
     }
 
     public boolean isDone() {

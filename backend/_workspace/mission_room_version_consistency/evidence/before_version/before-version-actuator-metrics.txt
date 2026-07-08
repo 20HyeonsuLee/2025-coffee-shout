@@ -1,0 +1,38 @@
+# before-version actuator metric evidence
+source_commit=9455450
+captured_at=2026-04-28 11:12:56 +0900
+
+## app-1 Pub/Sub counters
+# HELP pubsub_message_published_total
+# TYPE pubsub_message_published_total counter
+pubsub_message_published_total{eventType="PLAYER_LIST_UPDATE"} 80.0
+pubsub_message_published_total{eventType="PLAYER_READY"} 1400.0
+# HELP pubsub_message_received_total
+# TYPE pubsub_message_received_total counter
+pubsub_message_received_total{eventType="PLAYER_LIST_UPDATE"} 140.0
+pubsub_message_received_total{eventType="PLAYER_READY"} 2800.0
+pubsub_message_received_total{eventType="ROOM_CREATE"} 20.0
+# HELP pubsub_message_self_skip_total
+# TYPE pubsub_message_self_skip_total counter
+pubsub_message_self_skip_total 1480.0
+
+## app-1 version/gap/resync/stale metric search
+(no matches)
+
+## app-2 Pub/Sub counters
+# HELP pubsub_message_published_total
+# TYPE pubsub_message_published_total counter
+pubsub_message_published_total{eventType="PLAYER_LIST_UPDATE"} 60.0
+pubsub_message_published_total{eventType="PLAYER_READY"} 1400.0
+pubsub_message_published_total{eventType="ROOM_CREATE"} 20.0
+# HELP pubsub_message_received_total
+# TYPE pubsub_message_received_total counter
+pubsub_message_received_total{eventType="PLAYER_LIST_UPDATE"} 140.0
+pubsub_message_received_total{eventType="PLAYER_READY"} 2800.0
+pubsub_message_received_total{eventType="ROOM_CREATE"} 20.0
+# HELP pubsub_message_self_skip_total
+# TYPE pubsub_message_self_skip_total counter
+pubsub_message_self_skip_total 1480.0
+
+## app-2 version/gap/resync/stale metric search
+(no matches)

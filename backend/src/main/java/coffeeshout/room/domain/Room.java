@@ -3,11 +3,9 @@ package coffeeshout.room.domain;
 import static org.springframework.util.Assert.isTrue;
 import static org.springframework.util.Assert.state;
 
-import coffeeshout.global.exception.custom.InvalidArgumentException;
 import coffeeshout.global.exception.custom.InvalidStateException;
 import coffeeshout.minigame.domain.MiniGameResult;
 import coffeeshout.minigame.domain.MiniGameType;
-import coffeeshout.room.domain.menu.SelectedMenu;
 import coffeeshout.room.domain.player.Player;
 import coffeeshout.room.domain.player.PlayerName;
 import coffeeshout.room.domain.player.Players;
@@ -34,9 +32,9 @@ public class Room {
     private Player host;
     private RoomState roomState;
 
-    public Room(JoinCode joinCode, PlayerName hostName, SelectedMenu selectedMenu) {
+    public Room(JoinCode joinCode, PlayerName hostName) {
         this.joinCode = joinCode;
-        this.host = Player.createHost(hostName, selectedMenu);
+        this.host = Player.createHost(hostName);
         this.players = new Players(joinCode.getValue());
         this.roomState = RoomState.READY;
         this.miniGames = new LinkedList<>();
@@ -45,15 +43,37 @@ public class Room {
         join(host);
     }
 
-    public static Room createNewRoom(JoinCode joinCode, PlayerName hostName, SelectedMenu selectedMenu) {
-        return new Room(joinCode, hostName, selectedMenu);
+    public static Room createNewRoom(JoinCode joinCode, PlayerName hostName) {
+        return new Room(joinCode, hostName);
     }
 
-    public void joinGuest(PlayerName guestName, SelectedMenu selectedMenu) {
+    /**
+     * 저장소에서 읽어 온 값으로 Room을 복원하는 팩터리.
+     * 이미 구성된 Players와 상태 값으로 생성하며 도메인 규칙 검증은 생략한다.
+     */
+    public static Room ofStored(
+            JoinCode joinCode,
+            Player host,
+            Players players,
+            RoomState roomState
+    ) {
+        return new Room(joinCode, host, players, roomState);
+    }
+
+    private Room(JoinCode joinCode, Player host, Players players, RoomState roomState) {
+        this.joinCode = joinCode;
+        this.host = host;
+        this.players = players;
+        this.roomState = roomState;
+        this.miniGames = new LinkedList<>();
+        this.finishedGames = new ArrayList<>();
+    }
+
+    public void joinGuest(PlayerName guestName) {
         validateRoomReady();
         validateCanJoin();
         validatePlayerNameNotDuplicate(guestName);
-        join(Player.createGuest(guestName, selectedMenu));
+        join(Player.createGuest(guestName));
     }
 
     public void addMiniGame(PlayerName hostName, Playable miniGame) {
@@ -194,15 +214,6 @@ public class Room {
 
     public boolean isReadyState() {
         return roomState == RoomState.READY;
-    }
-
-    public void assignQrCode(QrCode qrCode) {
-        if (qrCode == null) {
-            throw new InvalidArgumentException(RoomErrorCode.QR_CODE_GENERATION_FAILED,
-                    "QR 코드는 null일 수 없습니다.");
-        }
-
-        joinCode.assignQrCode(qrCode);
     }
 
     public void showRoulette() {

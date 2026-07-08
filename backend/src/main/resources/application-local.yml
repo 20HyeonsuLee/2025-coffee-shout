@@ -52,10 +52,6 @@ management:
 redisson:
   enabled: true
 
-room:
-  qr:
-    prefix: http://localhost:8080/join/
-
 logging:
   level:
     coffeeshout: DEBUG

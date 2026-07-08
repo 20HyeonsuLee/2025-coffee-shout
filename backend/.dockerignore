@@ -1,0 +1,16 @@
+.gradle/
+build/
+.idea/
+*.iml
+.DS_Store
+.git/
+.gitignore
+.claude/
+_workspace/
+docs/
+monitor/
+load-test/node_modules/
+load-test/temp
+HELP.md
+README.md
+*.md

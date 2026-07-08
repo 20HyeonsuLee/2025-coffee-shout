@@ -14,14 +14,21 @@ import lombok.Getter;
 @Getter
 public class Players {
 
-    private static final Random RANDOM = new Random();
-
     private final List<Player> players;
     private final ColorUsage colorUsage;
 
     public Players(String joinCode) {
         this.players = Collections.synchronizedList(new ArrayList<>());
         this.colorUsage = new ColorUsage(joinCode);
+    }
+
+    /**
+     * 저장소에서 읽어 온 Player 목록으로 Players 일급 컬렉션을 복원하는 팩터리.
+     */
+    public static Players ofStored(final String joinCode, final List<Player> storedPlayers) {
+        final Players players = new Players(joinCode);
+        players.players.addAll(storedPlayers);
+        return players;
     }
 
     public synchronized Player join(Player player) {
