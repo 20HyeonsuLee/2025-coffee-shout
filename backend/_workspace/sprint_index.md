@@ -16,10 +16,10 @@
 | 1 | 스케일 아웃 → Sticky Session | **DOC_ONLY** | `sprint_1/01_architect_design.md`, `feedback.md` |
 | 2 | Sticky Session 한계 → 폐기 | **DOC_ONLY** | `sprint_2/01_sticky_session_limits.md`, `feedback.md` |
 | 3 | Redis SSOT + Pub/Sub + roomVersion | **IMPLEMENTED_EVIDENCE** | `mission_room_version_consistency/implementation_report.md`, `portfolio_report.ko.md`, `load_test_repomap.md` |
-| 4 | Snapshot resync herd guard | **UNIT_VERIFIED** | `sprint_4/01_architect_design.md`, `02_implementation_report.md`, `03_metric_capture_plan.md`, `feedback.md` |
+| 4 | Snapshot resync herd guard | **EVIDENCE_READY** | `sprint_4/*` + Grafana 캡처: gap 133, snapshot read 98, coalesced 76, **증폭률 0.737**, failed 0 (2 WAS + restart storm) |
 | 5 | Pub/Sub silent loss / reconnect freshness | 대기 | `mission_room_version_consistency/mission_contract.md` |
 | 6 | 순서 역전 → 방 단위 액터 모델 | 대기 | — |
-| 7 | 분산 스케줄링 → Sorted Set + 폴링 | 대기 | — |
+| 7 | 분산 스케줄링 → Sorted Set + 폴링 | **IMPLEMENTED_EVIDENCE** | PR #1 (`task/0000-redis-zset-scheduler`), `scheduler_evidence/scheduler_load_test_report.md` — 등록 220=취소 60+소비 160 잔여 0, WAS kill 인계 140/140, fire delay p99 0.80s |
 | 8 | 중복 요청 → 멱등성 키 (Lua) | 대기 | — |
 | 9 | 무중단 배포 검증 | 대기 | — |
 
@@ -61,3 +61,11 @@ Sprint 3 architect 에이전트가 `_workspace/sprint_3/01_architect_design.md` 
 - 서버 안에서 coalescing/cooldown/retry를 단위 테스트로 검증할 수 있고, Grafana metric으로 포트폴리오 evidence를 만들 수 있다.
 
 현재 Sprint 4는 `UNIT_VERIFIED` 상태다. 멀티 WAS 부하테스트와 Grafana 재캡처가 끝나면 `EVIDENCE_READY`로 올린다.
+
+### 2026-07-06 evidence 캡처 완료 (Sprint 4 → EVIDENCE_READY, Sprint 7 → IMPLEMENTED_EVIDENCE)
+
+2 WAS + Nginx + Redis 7.2 + Prometheus/Grafana 환경에서 캡처:
+
+- **Sprint 4 (herd guard)**: ready storm 2회(정상 + app-1 restart 직후) — gap 감지 133, snapshot read 98, resync 98, coalesced 76, cooldown skip 0, failed 0, **full-sync 증폭률 0.737** (gap당 1 read 미만), 전파 p95 1.84ms, 복구 평균 1.72ms. 캡처: `mission_room_version_consistency/evidence/grafana_screenshots/room-version-dashboard-renderer.png`
+- **Sprint 7 (분산 스케줄러)**: 시나리오 7의 Sorted Set + 폴링 + 원자 소비를 `DelayedPlayerRemovalService`(재접속 grace 15s)에 적용. disconnect/reconnect storm + WAS kill 실험 — `scheduler_evidence/scheduler_load_test_report.md` 참고. 원 시나리오의 Lua는 소비 연산에만 사용, 상태 변경 원자성은 기존 Redisson 락 구조 유지.
+- 부수 fix: `SnapshotResyncCoordinator` 생성자 모호성(전 profile 부팅 실패), Grafana datasource uid 미지정으로 대시보드 전체 "Data source not found".

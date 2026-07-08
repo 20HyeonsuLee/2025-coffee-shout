@@ -1,0 +1,25 @@
+config:
+  target: "{{ $env.TARGET_HOST }}"
+  phases:
+    - duration: 1
+      arrivalCount: 1
+      name: "Player removal storm"
+  processor: "../processor.js"
+  variables:
+    host: "{{ $env.TARGET_HOST }}"
+    menuId: 0
+    menuCustomName: "토맛토마토"
+    menuTemperature: "ICE"
+    roomCount: 20
+    guestCount: 7
+
+scenarios:
+  - name: "20방 × guest 7명 disconnect storm → 절반 재접속 취소 → 나머지 지연 삭제"
+    beforeScenario: "setupRemovalStorm"
+    flow:
+      - think: 3
+      - function: "disconnectGuests"
+      - think: 5
+      - function: "reconnectHalfGuests"
+      # grace period(15s) + 폴링 주기(1s) 경과 대기 — 미재접속 guest 삭제 소비 확인
+      - think: 25
